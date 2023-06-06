@@ -10,6 +10,7 @@ __all__ = ["InscopixProcessing"]
 class InscopixProcessing:
     def __init__(self, filename):
         self.filename = filename
+        self.all_cells = None
         self.rejected = None
         self.accepted = None
 
@@ -20,6 +21,7 @@ class InscopixProcessing:
         rejected_cells = df.xs(" accepted", axis=1, level=1)
         self.accepted = accepted_cells
         self.rejected = rejected_cells
+        self.all_cells = df
 
     def classify_cells(self):
         pass
