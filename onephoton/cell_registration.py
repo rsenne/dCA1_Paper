@@ -2,33 +2,83 @@ import os
 import numpy as np
 import pandas as pd
 from tkinter import filedialog,simpledialog
+import h5py
+import caiman as cm
+import tifffile
+__all__=['CellReg']
 class CellReg:
     def __init__(self):
         self.base_directory = filedialog.askdirectory(title='Choose Experiment Directory')
         self.metadata_file = filedialog.askopenfilename(title='Choose metadata csv file')
-        self.animal = simpledialog.askstring(prompt='Enter animal name')
-        self.FOV = simpledialog.askstring(prompt='Enter FOV')
+        self.animal = simpledialog.askstring(title='Experiment info',prompt='Enter animal name')
+        self.FOV = simpledialog.askstring(title='Experiment info',prompt='Enter FOV name')
 
+        self.metadata = pd.read_csv(self.metadata_file)
+    def load_footprints_3D(self,select_sessions=False):
+        '''
+        :param select_sessions: default False. if True user clicks the footprint .mat files indivudally in chronological order.
+        :return:
+            self.footprints: list of N sessions, each entry is a 3D array of binarized cell roi footprints from that session
+        '''
+        if select_sessions:
+            self.footprint_files = filedialog.askopenfilenames(title="Select the footprint files in chronological order of sessions")
+            for i in range(N):
+                foot_file= filedialog.askopenfilename() ##CLICK THE FILES IN CHRONO ORDER!
+                self.footprint_files.append(footfile)
+        else:
+            sessions = self.metadata['Session'].loc[(self.metadata['Animal']==self.animal)&(self.metadata['FOV']==self.FOV)].values()
+            print('Make sure these are in order: ')
+            print(sessions)
+            print('If theyre not in order, run load_og_footprints again and set select sessions to True to put them in order')
+
+            footprint_path =os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,'converted_maps')
+            footprint_files = [os.path.join(footprint_path,file) for file in os.listdir(footprint_path) if '.mat' in file]
+
+        foots_float =[]
+        for f in footprint_files:
+            foot_file = h5py.File(f, 'r')
+            foot_file.get('this_session_converted_footprints')[()].transpose((2, 1, 0))
+            foots_float.append(foot_file.get('this_session_converted_footprints')[()].transpose((2, 1, 0)))
+
+        self.footprints = [self.convert_foots_to_masks(foots_float[i]) for i in range(len(foots_float))]  # must convert to masks if imported footprints from inscopix helper files.        return self.footprints
+        return self.footprints
+    def load_shifted_footprints_2D(self):
+        '''
+        Load in multiple 3D arrays of shifted footprints from each session.
+        Footprints are shifted relative to inscopix images but aligned from CellReg ouptut
+        :return:
+            self.footprints_reg: list of N sessions,
+                                each entry is a 3D array of binarized cell roi footprints from that session, with applied shifts from CellReg
+        '''
+        aligned_map_file = h5py.File(os.path.join(self.base_directory,'CellReg',self.animal + '_' + self.FOV, 'aligned_data_struct.mat'))
+        aligned_struct = aligned_map_file['aligned_data_struct']
+        self.footprints_reg = []
+        for i in range(N):
+            foot_aligned = aligned_map_file[aligned_struct['footprints_projections_corrected'][i, 0]][()].transpose((1, 0))
+            sum_foot_aligned = self.convert_foots_to_masks(foot_aligned)
+            self.footprints_reg.append(sum_foot_aligned)
+        return self.footprints_reg
     def convert_foots_to_masks(footprints):
         '''
         converts footprints to binary masks of 0s and 1s
-        footprints: n x Y x X array of cell masks, background must be 0 , cell rois must be >0
-        returns footprints with cell rois set to 1
+        footprints: n x Y x X array of cell masks, background pixels must be 0, pixels corresponding to cell rois must be > 0
+        returns footprints with pixels within cell rois set to 1
         '''
         footprints[footprints > 0] = 1
         return footprints
 
     def get_reg_ind(self):
         '''
-        get registered indices from CellReg and summary images from all sessions
+        Get table of registered indices from CellReg from all sessions
         :param animal: animal name, str
         :param FOV: fov name,str
         :param file_key: metadata csv for experiment
                         #Note: Session names should be alphabetized in temporal order i.e. session1,session2 or,
                          baseline1,baseline2,post1,post2. This ensures getting data for multiple sessions are in the right order.
         :param base_path: base directory for processed data
-        :return: reg_ind: array, python equivalent of cell_to_index_map from CellReg output data.
-                        N x M: N unique cells for all sessions, M sessions
+        :return: reg_ind: array, N x M: N unique cells for all sessions, M sessions
+                                python equivalent of cell_to_index_map from CellReg output data.
+                                Lookup table of registered cells from each session.
 
         '''
         info = pd.read_csv(self.metadata_file)
@@ -45,20 +95,53 @@ class CellReg:
         print(str(reg_ind.shape[0]) + ' Unique cells detected in registration')  # how many cells in total detected
 
         return reg_ind
-
-    def plot_overlay_footprints(session_inds, reg_foots, cmap='jet', scale_factor=1):
+    def generate_corr_images(self,save=True):
         '''
+        Generate correlation image; reliant on Caiman packages
+        :return: corr_ims: list of 2d correlation image arrays
+        '''
+        mc_movie_path = os.path.join(self.base_directory,'Summary Images','MC')
+        mc_movie_files = [os.pathljoin(mc_movie_path) for file in os.listdir(mc_movie_path) if 'MC_Movie.tif' in file]
+
+        self.corr_ims = []
+        for file in mc_movie_files:
+            movie = cm.load(file)
+            Cn = cm.local_correlations(movie.transpose(1, 2, 0))
+            self.corr_ims.append(Cn)
+            if save:
+                tifffile.imwrite(os.path.join(mc_movie_path,self.animal+'_'+self.animal+'_CorrImage.tif'))
+
+        return self.corr_ims
+
+    def get_summary_images(self,image_type='max dff'):
+        if image_type not in ['max dff', 'mean', 'min', 'max', 'std','corr']:
+            raise Exception("Image type not supported, choose max dff, mean, min, max, std or corr")
+        if image_type=='max dff':
+            images_path = os.path.join(self.base_directory,'Summary_images',self.animal+'_'+self.FOV,'DFF')
+        else:
+            images_path = os.path.join(self.base_directory,'Summary_images',self.animal+'_'+self.FOV,'MC')
+
+###### plotting functions #########
+    def plot_overlay_footprints(self.footprints_reg,session_inds=None, cmap='jet', scale_factor=1):
+        '''
+        Notebook plotting function to overlay the registered sets of ROIs
         session_inds: list or array of which indices of which sessions to plot (i.e. 0 = session 1)
         reg_foots: registered footprints from all sessions, list or array, len N with with YxX arrays or N x Y x X array of N sessions (2D for each session-multiple cells)
-        cmap: colomap string
-        scale_factor: for plotting scaling
-        return: overlay image of aligned footprints
+        cmap: colormap string
+        scale_factor: int, for plotting scaling
+        return: holoviews image object of overlay image of aligned footprints
         '''
-        if type(reg_foots) == list:
-            array_foots = np.array(reg_foots)
+        #convert list of footprints to 3d array
+        if type(self.footprints_reg) == list:
+            array_foots = np.array(self.footprints_reg)
+        else:
+            array_foots=self.footprints_reg
+        ### optional, choose only some sessions to overlay
+        if session_inds is None:
             overlay_foots = array_foots.sum(axis=0)
         else:
-            overlay_foots = reg_foots.sum(axis=0)
+            overlay_foots = array_foots[session_inds,:,:].sum(axis=0)
+
         dims = (overlay_foots.shape[0], overlay_foots.shape[1])
 
         return hv.Image(overlay_foots).opts(cmap=cmap, colorbar=True, width=dims[1] * scale_factor,
@@ -67,7 +150,7 @@ class CellReg:
     # image color limits function, use for single plot instances
     def im_scale(I, min_pct='default', max_pct='default'):
         '''
-        Sets colorbar limits
+        Sets image colorbar limits
         :param I: array, Image to be plotted
         :param min_pct: default = minimum pixel value of image is lower limit,
                         float/int: percentile of pixel values to plot as minimum value in image
@@ -90,7 +173,7 @@ class CellReg:
     def roi_plot(footprints, idx, image, min_pct='default', max_pct='default', scale_factor: int = 2, cmap_roi='hsv',
                  cmap_image='gray'):
         '''
-        plot one cell's roi over a bacgkround image as a patch
+        plot one cell's roi over a background image as a translucent patch
         :param cnm: cnmf object
         :param idx: cell index to plot, if -1 no cell is plotted
         :param image: background image to plot over
