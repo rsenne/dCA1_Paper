@@ -1,11 +1,11 @@
-Cell Registration Pipeline
+# Cell Registration Pipeline
 
-### Folder structure
+### 1. Folder structure
 Create subfolders for each animal's fov
 
 /BaseDirectory/CellReg/{ani}_{FOV}
 
-### Run preprocessing in IDPS software
+### 2. Run preprocessing in IDPS software
 1) Extract ROIs, save ROI cell tiffs 
 
 
@@ -18,20 +18,20 @@ Create subfolders for each animal's fov
 
 4) Export Max DF/F Projection as tif: BaseDirectory/Summary_Images/DFF/{ani}_{session}_maxproj.tiff
 
-### Convert Inscopix footprints 
+### 3. Convert Inscopix footprints 
 using CellReg's helper file (.../CellReg/Helper/format_conversion_inscopix.m)
  - run for each sessions output folder containing all cell tiffs (Step 1 above)
  - save output for each session as '/BaseDirectory/CellReg/{ani}_{FOV}/converted_maps/{ani}_{session}_G&B_converted.mat
 
-### Manual alignment of FOVS
+### 4. Manual alignment of FOVS
 - TO DO: affine_transform.ipynb
 - TO DO: align sessions pre registration
 
-### Run CellReg
+### 5. Run CellReg
 1) Select converted footprint mat files from /BaseDirectory/CellReg/ani_FOV/converted_maps
 2) Run Cell Reg, set output directory as /BaseDirectory/CellReg/ani_FOV
 3) TODO: redo cell reg after affine transform alignment 
 
-### Run Manual Quality Control
+### 6. Run Manual Quality Control
 1) TODO: clean up eval_cellreg.ipynb
 2) TODO: Test CellReg class and debug, download example images 

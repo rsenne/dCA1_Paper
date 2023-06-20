@@ -5,6 +5,7 @@ from tkinter import filedialog,simpledialog
 import h5py
 import caiman as cm
 import tifffile
+import holoviews as hv
 __all__=['CellReg']
 class CellReg:
     def __init__(self):
@@ -12,8 +13,10 @@ class CellReg:
         self.metadata_file = filedialog.askopenfilename(title='Choose metadata csv file')
         self.animal = simpledialog.askstring(title='Experiment info',prompt='Enter animal name')
         self.FOV = simpledialog.askstring(title='Experiment info',prompt='Enter FOV name')
-
+        self.N_sessions = simpledialog.askinteger(title='Experiment info',prompt='Enter number of sessions')
         self.metadata = pd.read_csv(self.metadata_file)
+        self.group = self.metadata['Group'].loc[self.metadata['Animal']==self.animal].values[0]
+
     def load_footprints_3D(self,select_sessions=False):
         '''
         :param select_sessions: default False. if True user clicks the footprint .mat files indivudally in chronological order.
@@ -26,13 +29,14 @@ class CellReg:
                 foot_file= filedialog.askopenfilename() ##CLICK THE FILES IN CHRONO ORDER!
                 self.footprint_files.append(footfile)
         else:
-            sessions = self.metadata['Session'].loc[(self.metadata['Animal']==self.animal)&(self.metadata['FOV']==self.FOV)].values()
+            sessions = self.metadata['Session'].loc[(self.metadata['Animal']==self.animal)&(self.metadata['FOV']==self.FOV)].values
             print('Make sure these are in order: ')
             print(sessions)
-            print('If theyre not in order, run load_og_footprints again and set select sessions to True to put them in order')
+            print('If theyre not in order, run load_footprints_3D again and set select sessions to True to put them in order')
 
             footprint_path =os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,'converted_maps')
-            footprint_files = [os.path.join(footprint_path,file) for file in os.listdir(footprint_path) if '.mat' in file]
+            footprint_files = [os.path.join(footprint_path,self.animal+'_'+session+'_G_B_converted.mat') for session in sessions]
+            print(footprint_files)
 
         foots_float =[]
         for f in footprint_files:
@@ -41,6 +45,7 @@ class CellReg:
             foots_float.append(foot_file.get('this_session_converted_footprints')[()].transpose((2, 1, 0)))
 
         self.footprints = [self.convert_foots_to_masks(foots_float[i]) for i in range(len(foots_float))]  # must convert to masks if imported footprints from inscopix helper files.        return self.footprints
+
         return self.footprints
     def load_shifted_footprints_2D(self):
         '''
@@ -53,12 +58,12 @@ class CellReg:
         aligned_map_file = h5py.File(os.path.join(self.base_directory,'CellReg',self.animal + '_' + self.FOV, 'aligned_data_struct.mat'))
         aligned_struct = aligned_map_file['aligned_data_struct']
         self.footprints_reg = []
-        for i in range(N):
+        for i in range(self.N_sessions):
             foot_aligned = aligned_map_file[aligned_struct['footprints_projections_corrected'][i, 0]][()].transpose((1, 0))
             sum_foot_aligned = self.convert_foots_to_masks(foot_aligned)
             self.footprints_reg.append(sum_foot_aligned)
         return self.footprints_reg
-    def convert_foots_to_masks(footprints):
+    def convert_foots_to_masks(self,footprints):
         '''
         converts footprints to binary masks of 0s and 1s
         footprints: n x Y x X array of cell masks, background pixels must be 0, pixels corresponding to cell rois must be > 0
@@ -66,7 +71,6 @@ class CellReg:
         '''
         footprints[footprints > 0] = 1
         return footprints
-
     def get_reg_ind(self):
         '''
         Get table of registered indices from CellReg from all sessions
@@ -91,17 +95,17 @@ class CellReg:
         dset = group.get('cell_to_index_map')
         reg_ind = dset[()] - 1  # converting to python indexing
         reg_ind = reg_ind.T
-        reg_ind = reg_ind.astype('int')
+        self.reg_ind = reg_ind.astype('int')
         print(str(reg_ind.shape[0]) + ' Unique cells detected in registration')  # how many cells in total detected
 
-        return reg_ind
+        return self.reg_ind
     def generate_corr_images(self,save=True):
         '''
         Generate correlation image; reliant on Caiman packages
         :return: corr_ims: list of 2d correlation image arrays
         '''
-        mc_movie_path = os.path.join(self.base_directory,'Summary Images','MC')
-        mc_movie_files = [os.pathljoin(mc_movie_path) for file in os.listdir(mc_movie_path) if 'MC_Movie.tif' in file]
+        mc_movie_path = os.path.join(self.base_directory,'Summary_Images','MC')
+        mc_movie_files = [os.path.join(mc_movie_path) for file in os.listdir(mc_movie_path) if 'MC_Movie.tif' in file]
 
         self.corr_ims = []
         for file in mc_movie_files:
@@ -109,27 +113,47 @@ class CellReg:
             Cn = cm.local_correlations(movie.transpose(1, 2, 0))
             self.corr_ims.append(Cn)
             if save:
-                tifffile.imwrite(os.path.join(mc_movie_path,self.animal+'_'+self.animal+'_CorrImage.tif'))
+                tifffile.imwrite(os.path.join(mc_movie_path,self.animal+'_'+self.FOV+'_CorrImage.tif'))
 
         return self.corr_ims
-
     def get_summary_images(self,image_type='max dff'):
         if image_type not in ['max dff', 'mean', 'min', 'max', 'std','corr']:
             raise Exception("Image type not supported, choose max dff, mean, min, max, std or corr")
+
         if image_type=='max dff':
-            images_path = os.path.join(self.base_directory,'Summary_images',self.animal+'_'+self.FOV,'DFF')
+            images_path = os.path.join(self.base_directory,'Summary_Images',self.animal+'_'+self.FOV,'DFF')
         else:
-            images_path = os.path.join(self.base_directory,'Summary_images',self.animal+'_'+self.FOV,'MC')
+            images_path = os.path.join(self.base_directory,'Summary_Images',self.animal+'_'+self.FOV,'MC')
+
+        if image_type == 'max dff':
+            image_files = [os.path.join(images_path,f) for f in os.listdir(images_path)]
+        elif image_type == 'mean':
+            image_files = [os.path.join(images_path,f) for f in os.listdir(images_path) if 'MeanProj' in f]
+        elif image_type == 'min':
+            image_files = [os.path.join(images_path,f) for f in os.listdir(images_path) if 'MinProj' in f]
+        elif image_type == 'std':
+            image_files = [os.path.join(images_path,f) for f in os.listdir(images_path) if 'STDProj' in f]
+        elif image_type == 'corr':
+            image_files = [os.path.join(images_path,f) for f in os.listdir(images_path) if 'CorrImage' in f]
+
+        image_files.sort()
+
+        if self.group == 'EXT':
+            self.image_files = [image_files[3],image_files[-1],image_files[0],image_files[1],image_files[2]]
+        elif self.group =='GEN':
+            self.image_files = image_files
+
+        return self.image_files
 
 ###### plotting functions #########
-    def plot_overlay_footprints(self.footprints_reg,session_inds=None, cmap='jet', scale_factor=1):
+    def plot_overlay_footprints(self,session_inds=None, cmap='jet', scale_factor=1):
         '''
         Notebook plotting function to overlay the registered sets of ROIs
         session_inds: list or array of which indices of which sessions to plot (i.e. 0 = session 1)
         reg_foots: registered footprints from all sessions, list or array, len N with with YxX arrays or N x Y x X array of N sessions (2D for each session-multiple cells)
         cmap: colormap string
         scale_factor: int, for plotting scaling
-        return: holoviews image object of overlay image of aligned footprints
+        return: holoviews overlay object
         '''
         #convert list of footprints to 3d array
         if type(self.footprints_reg) == list:
@@ -147,8 +171,7 @@ class CellReg:
         return hv.Image(overlay_foots).opts(cmap=cmap, colorbar=True, width=dims[1] * scale_factor,
                                             height=dims[0] * scale_factor, clabel='session index')
 
-    # image color limits function, use for single plot instances
-    def im_scale(I, min_pct='default', max_pct='default'):
+    def im_scale(self,I, min_pct='default', max_pct='default'):
         '''
         Sets image colorbar limits
         :param I: array, Image to be plotted
@@ -170,24 +193,24 @@ class CellReg:
             vmax = np.percentile(I, max_pct)
         return (vmin, vmax)
 
-    def roi_plot(footprints, idx, image, min_pct='default', max_pct='default', scale_factor: int = 2, cmap_roi='hsv',
+    def roi_plot(self, session_ind,idx,image=None,min_pct='default', max_pct='default', scale_factor: int = 2, cmap_roi='hsv',
                  cmap_image='gray'):
-        '''
-        plot one cell's roi over a background image as a translucent patch
-        :param cnm: cnmf object
-        :param idx: cell index to plot, if -1 no cell is plotted
-        :param image: background image to plot over
+        ''' (Notebook) Plot one cell's roi over a background image as a translucent patch
+        :param session_ind: which session to plot cells
+        :param image: background image to plot over, optional, if None will just plot footprint
+        :param idx: cell index to plot, *if -1 no cell is plotted*
         :param min_pct: minimum percentile of background image to set as colorbar minimum
         :param max_pct: maximum percentile of background image to set as colorbar maximum
         :param scale_factor: scale dimensions of images
         :param: cmap_roi: colormap for roi
         :param cmap_image: image color map
-        :return:
+        :return: Holoviews image overlay object
         '''
-        dims = image.shape if image is not None else (footprint.shape[1], footprint.shape[2])
+        footprints = self.footprints[session_ind]
+        dims = image.shape if image is not None else (footprints.shape[1], footprints.shape[2])
         roi = footprints[idx, :, :].copy()
         roi[roi == 0] = np.nan
-        clim = im_scale(image, min_pct, max_pct)
+        clim = self.im_scale(image, min_pct, max_pct)
         if image is not None:
             if idx != -1:
                 plot = hv.Image(image).opts(cmap=cmap_image, clim=clim, width=int(dims[1] * scale_factor),
@@ -202,26 +225,28 @@ class CellReg:
                                       height=int(dims[0] * scale_factor), alpha=.5)
         return plot
 
-    def rois_plot(footprint, image, idxs=None, min_pct='default', max_pct='default', scale_factor: int = 2,
+    def rois_plot(self, session_ind,idxs=None,image=None, min_pct='default', max_pct='default', scale_factor: int = 2,
                   cmap_roi='hsv', cmap_image='gray'):
-        '''plot multiple cells rois over a bacgkround image as patches
-        :param footprint: footprint of all cells, cells x Xdim x Ydim
-        :param idx: cell index to plot, if -1 no cell is plotted
-        :param image: background image to plot over
+        ''' (Notebook) Plot multiple cells rois over a bacgkround image as patches
+        :param session_ind: which session to plot cells
+        :param image: background image to plot over, optional, if None will just plot footprint
+        :param idxs: cell index to plot, *if -1 no cell is plotted*
         :param min_pct: minimum percentile of background image to set as colorbar minimum
         :param max_pct: maximum percentile of background image to set as colorbar maximum
         :param scale_factor: scale dimensions of images
         :param: cmap_roi: colormap for roi
         :param cmap_image: image color map
-        :return:
+        :return: Holoviews image overlay object
         '''
-        dims = image.shape if image is not None else (footprint.shape[1], footprint.shape[2])
+        footprints = self.footprints[session_ind]
+        dims = image.shape if image is not None else (footprints.shape[1], footprints.shape[2])
         if idxs is None:  # allows you to plot only some cells
-            idxs = np.arange(0, footprint.shape[0])
-        sum_masks = np.sum(footprint[idxs, :, :], axis=0)
+            idxs = np.arange(0, footprints.shape[0])
+        sum_masks = np.sum(footprints[idxs, :, :], axis=0)
         sum_masks[sum_masks == 0] = np.nan
+
         if image is not None:
-            clim = im_scale(image, min_pct, max_pct)
+            clim = self.im_scale(image, min_pct, max_pct)
 
             plot = hv.Image(image).opts(cmap=cmap_image, clim=clim, width=int(dims[1] * scale_factor),
                                         height=int(dims[0] * scale_factor)) * hv.Image(sum_masks).opts(cmap='hsv',
@@ -231,10 +256,11 @@ class CellReg:
                                             height=int(dims[0] * scale_factor), alpha=.5)
         return plot
 
-    def discrete_colorscale(bvals, colors):
+    def discrete_colorscale(self,bvals, colors):
         """
-        bvals - list of values bounding intervals/ranges of interest
-        colors - list of rgb or hex colorcodes for values in [bvals[k], bvals[k+1]],0<=k < len(bvals)-1
+        Creates plotly discrete colorscale for
+        bvals: list of values bounding intervals/ranges of interest
+        colors: list of rgb or hex colorcodes for values in [bvals[k], bvals[k+1]],0<=k < len(bvals)-1
         returns the plotly  discrete colorscale
         """
         if len(bvals) != len(colors) + 1:
@@ -248,30 +274,31 @@ class CellReg:
             dcolorscale.extend([[nvals[k], colors[k]], [nvals[k + 1], colors[k]]])
         return dcolorscale
 
-    def plot_A_discrete_multisession(n, footprint, images_list, footprint_threshold, indices_lists, ticktexts,
-                                     colors_list, opacity=0.5, max_pct=None):  # updated from Y Zaki
+    def plot_A_discrete_multisession(self,n,session_inds, images_list, footprint_threshold, indices_lists, ticktexts,
+                                     colors_list, opacity=0.5, max_pct=0.95):  # updated from Y Zaki
         '''
-        n: int, number of sessions to ploy
-        A : 3d array
-            array of spatial footprints, first dimension should be cells
+        n: int, number of sessions to plot
+        footprint : 3d array
+            array of spatial footprints, cells x Y x X
         images_list: list of 2d image arrays
             list of image arrays for plotting
+        footprint threshold: value for threshold on rois, i.e. if all rois footprints are > 0, this is 0
         indices_lists : list of list of arrays
-            a list of the lists of cell indices to plot on each subplot
+            a list of the groups of cell indices to plot on each subplot
             each list item is a set of cell indices, where each set of cell indices will be colored one discrete color
         ticktexts : list of list of strings
             list of labels for each plot
             each string will correspond to a label defining that set of indices
         colors : list of strings of RGB hex values
-            each color will correspondn to the color of that set of cells
+            each color will correspond to the color of that set of cells
         opacity : float
             the opacity of the footprints overlaid onto max projection. default is 0.4
         '''
 
         fig = make_subplots(rows=1, cols=n, horizontal_spacing=0.05, shared_yaxes=True, shared_xaxes=True)
         cx = 0
-        for j in np.arange(0, n):
-            A = footprint[j]
+        for j in session_inds:
+            A = self.footprints[j]
             max_proj = images_list[j]
             indices_list = indices_lists[j]
             ticktext = ticktexts[j]
@@ -289,15 +316,16 @@ class CellReg:
                 sub_stacks.append(sub_maxA)
 
             bvals = np.arange(0, len(indices_list) + 1)
-            dcolorsc = discrete_colorscale(bvals, colors)
+            dcolorsc = self.discrete_colorscale(bvals, colors)
 
             final_maxA = np.dstack(sub_stacks)
             final_maxA = final_maxA.max(axis=2)
             final_maxA[final_maxA <= footprint_threshold] = np.nan
 
-            zmin = im_scale(max_proj)[0]
+            zmin = self.im_scale(max_proj)[0]
+
             if max_pct is None:
-                zmax = im_scale(max_proj, max_pct=95)[1]
+                zmax = im_scale(max_proj, max_pct=self.im_scale(max_proj)[1])[1]
             else:
                 zmax = im_scale(max_proj, max_pct=max_pct)[1]
 
@@ -311,3 +339,66 @@ class CellReg:
                               font=dict(size=13), dragmode='pan', margin=dict(l=40, r=40, t=60, b=40))
             fig.update_xaxes(matches='x')
         return fig
+
+    def plot_cell_reg(self,session_pair,image_list,max_pct=.95):  # only flexible for 2 sessions now
+        '''
+        (Notebook) Plot matched and non-matched cells across two sessions
+        session_pair: indices of 2 sessions to plot together (i.e. to plot first two sessions [0,1])
+        image_list: list of images for corresponding sessions
+        max_pct
+        returns: Plotly plot object
+            one plot per session, registered cells in one color, other cells in another color
+        '''
+        reg_ind = self.get_reg_ind()
+        S1 = session_pair[0]
+        S2 = session_pair[1]
+        pre_only = reg_ind[(reg_ind[:, S1] >= 0) & (reg_ind[:, S2] == -1)]
+        post_only = reg_ind[(reg_ind[:, S2] >= 0) & (reg_ind[:, S1] == -1)]
+        both = reg_ind[(reg_ind[:, S1] >= 0) & (reg_ind[:, S2] >= 0)]
+
+        indices_list_pre = [both[:, 0], pre_only[:, 0]]
+        indices_list_post = [both[:, 1], post_only[:, 1]]
+        ticktext_pre = ['Both', '1 Only']
+        ticktext_post = ['Both', '2 Only']
+        colors_pre = ['#4682b4', '#663399']
+        colors_post = ['#4682b4', '#b3dba0']
+
+        indices_lists = [indices_list_pre, indices_list_post]
+        ticktexts = [ticktext_pre, ticktext_post]
+        colors_list = [colors_pre, colors_post]
+        fig = self.plot_A_discrete_multisession(2, session_inds=session_pair, images_list=image_list,
+                                                footprint_threshold=0, indices_lists=indices_lists, ticktexts=ticktexts,
+                                                colors_list=colors_list,max_pct=max_pct)
+        fig.update_layout(title='mouse: ' + self.animal + ' ' + self.FOV)
+        fig.show(config={'scrollZoom': True})
+
+
+    def plot_reg_pairs(self,session_inds, image_list, idx_list, min_pct='default', max_pct='default'):
+
+        '''
+        Notebook plot: plots grid of images from multiple session, with one cell matched cell pair overlaid,
+                has an interactive slider to toggle between individual cells
+        known bug: can only plot registered cells all together in one holomap or cells only active in one session in the same holomap.
+                    if cell didnt have a match in CellReg found in a session it is not plotted.
+        session_inds: list of indices for sessions to plot [i.e. for first two sessions [0,1])
+        image_list: images to plot roi over, should be same order as footprints (i.e. footprints[0] correspond to session with image[0])
+        roi_list: roi set indices that are which roi(s) to plot in each session
+
+        :return: holoviews gridspace object
+        '''
+        hv.output(size=250)
+        gridspace = hv.GridSpace(kdims=['Images', 'Session'], group='ROI', label='Neuron')
+        footprints_list = self.footprints[session_inds]
+
+        for j, im in enumerate(image_list):
+            idxs = idx_list[j]
+            holomap = hv.HoloMap(kdims='registration pair index')
+            for k, idx in enumerate(idxs):
+                panel = roi_plot(footprints_list[j], idx, im, min_pct=min_pct, max_pct=max_pct)
+                holomap[k] = panel
+                gridspace[0, j] = holomap
+
+        roi_array = np.asarray(idx_list)
+        d = {j: list(roi_array[:, j]) for j in np.arange(roi_array.shape[1])}
+
+        return gridspace
