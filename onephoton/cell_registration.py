@@ -6,18 +6,29 @@ import h5py
 import caiman as cm
 import tifffile
 import holoviews as hv
+from skimage.transform import warp, AffineTransform
+from scipy.io import savemat
+
 __all__=['CellReg']
+
 class CellReg:
-    def __init__(self):
-        self.base_directory = filedialog.askdirectory(title='Choose Experiment Directory')
-        self.metadata_file = filedialog.askopenfilename(title='Choose metadata csv file')
-        self.animal = simpledialog.askstring(title='Experiment info',prompt='Enter animal name')
-        self.FOV = simpledialog.askstring(title='Experiment info',prompt='Enter FOV name')
-        self.N_sessions = simpledialog.askinteger(title='Experiment info',prompt='Enter number of sessions')
+    def __init__(self,animal:str,fov:str,N_sessions:int):
+        # self.base_directory = filedialog.askdirectory(title='Choose Experiment Directory')
+        # self.metadata_file = filedialog.askopenfilename(title='Choose metadata csv file')
+        self.base_directory = r"C:\Users\RamirezLab\Desktop\Rebecca"
+        self.metadata_file = r"C:\Users\RamirezLab\Desktop\Rebecca\Data_info_astro.csv"
+        self.animal = animal
+        self.FOV = fov
+        self.N_sessions = N_sessions
         self.metadata = pd.read_csv(self.metadata_file)
         self.group = self.metadata['Group'].loc[self.metadata['Animal']==self.animal].values[0]
 
-    def load_footprints_3D(self,select_sessions=False):
+        if self.group=='EXT':
+            self.sessions = ['fc','recall','ext1','ext2','ext3']
+        elif self.group=='GEN':
+            self.sessions = ['fc','gen1','gen2','gen3','gen4']
+
+    def load_footprints_3D(self,select_sessions=False,shifted=False):
         '''
         :param select_sessions: default False. if True user clicks the footprint .mat files indivudally in chronological order.
         :return:
@@ -34,8 +45,12 @@ class CellReg:
             print(sessions)
             print('If theyre not in order, run load_footprints_3D again and set select sessions to True to put them in order')
 
-            footprint_path =os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,'converted_maps')
-            footprint_files = [os.path.join(footprint_path,self.animal+'_'+session+'_G_B_converted.mat') for session in sessions]
+            if shifted:
+                footprint_path = os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,'shifted_maps')
+                fotprint_files = [os.path.join(footprint_path,self.animal+'_'+session+'_shifted_footprints.mat') for session in sessions]
+            else:
+                footprint_path =os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,'converted_maps')
+                footprint_files = [os.path.join(footprint_path,self.animal+'_'+session+'_G&B_converted.mat') for session in sessions]
             print(footprint_files)
 
         foots_float =[]
@@ -45,8 +60,9 @@ class CellReg:
             foots_float.append(foot_file.get('this_session_converted_footprints')[()].transpose((2, 1, 0)))
 
         self.footprints = [self.convert_foots_to_masks(foots_float[i]) for i in range(len(foots_float))]  # must convert to masks if imported footprints from inscopix helper files.        return self.footprints
-
+        
         return self.footprints
+    
     def load_shifted_footprints_2D(self):
         '''
         Load in multiple 3D arrays of shifted footprints from each session.
@@ -63,6 +79,28 @@ class CellReg:
             sum_foot_aligned = self.convert_foots_to_masks(foot_aligned)
             self.footprints_reg.append(sum_foot_aligned)
         return self.footprints_reg
+    
+    def resize_images(self,image_type):
+        image_files = self.get_summary_images(image_type)
+        images = [tifffile.imread(file) for file in image_files]
+        rows = [im.shape[0] for im in images]
+        cols = [im.shape[1] for im in images]
+        i = np.min(rows)
+        j = np.min(cols)
+        resized = [im[0:i,0:j] for im in images]
+        return resized
+
+    def resize_foots(self):
+        footprints = self.load_footprints_3D()
+        cells = [im.shape[0] for im in footprints]
+        rows = [im.shape[1] for im in footprints]
+        cols = [im.shape[2] for im in footprints]
+        i = np.min(rows)
+        j = np.min(cols)
+        resized = [footprint[:,0:i,0:j] for footprint in footprints]
+        
+        return resized
+
     def convert_foots_to_masks(self,footprints):
         '''
         converts footprints to binary masks of 0s and 1s
@@ -71,6 +109,7 @@ class CellReg:
         '''
         footprints[footprints > 0] = 1
         return footprints
+    
     def get_reg_ind(self):
         '''
         Get table of registered indices from CellReg from all sessions
@@ -99,6 +138,7 @@ class CellReg:
         print(str(reg_ind.shape[0]) + ' Unique cells detected in registration')  # how many cells in total detected
 
         return self.reg_ind
+    
     def generate_corr_images(self,save=True):
         '''
         Generate correlation image; reliant on Caiman packages
@@ -116,6 +156,7 @@ class CellReg:
                 tifffile.imwrite(os.path.join(mc_movie_path,self.animal+'_'+self.FOV+'_CorrImage.tif'))
 
         return self.corr_ims
+    
     def get_summary_images(self,image_type='max dff'):
         if image_type not in ['max dff', 'mean', 'min', 'max', 'std','corr']:
             raise Exception("Image type not supported, choose max dff, mean, min, max, std or corr")
@@ -127,6 +168,8 @@ class CellReg:
 
         if image_type == 'max dff':
             image_files = [os.path.join(images_path,f) for f in os.listdir(images_path)]
+        elif image_type == 'max':
+            image_files = [os.path.join(images_path,f) for f in os.listdir(images_path) if 'MaxProj' in f]
         elif image_type == 'mean':
             image_files = [os.path.join(images_path,f) for f in os.listdir(images_path) if 'MeanProj' in f]
         elif image_type == 'min':
@@ -145,6 +188,88 @@ class CellReg:
 
         return self.image_files
 
+######## affine transform functions ###########
+    def export_affine_shift_footprints(self,footprints,X_shifts,Y_shifts,Rotations,Shears):
+        try:
+            os.mkdir(os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV))
+        except FileExistsError:
+            print('Path exists '+ os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV))
+        try:
+            os.mkdir(os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,'shifted_footprints'))
+        except FileExistsError:
+            print('Path exists '+ os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,'shifted_footprints'))
+
+        savepath = os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,'shifted_footprints')
+        
+        for i in range(self.N_sessions):
+            shift_x = X_shifts[i]
+            shift_y = Y_shifts[i]
+            rotation = Rotations[i]
+            session = self.sessions[i]
+            shear = Shears[i]
+            shifted = self.apply_shifts_to_footprints(footprints,shift_x,shift_y,rotation,shear)
+            
+            savemat(os.path.join(savepath,self.animal+'_'+self.FOV+'_'+session+'_shifted_footprints.mat'),{'footprints_shifted':shifted,'shift_x':shift_x,'shift_y':shift_y,'rotation':rotation,'shear':shear})
+
+    def export_affine_shift_images(self,images,X_shifts,Y_shifts,Rotations,Shears):
+        im_path = os.path.join(self.base_directory,'Summary_Images', self.animal+'_'+self.FOV,'affine_shifted_images')
+        
+        if not os.path.exists(im_path):
+            print(True)
+            try:
+                os.mkdir(os.path.split(im_path)[0]) 
+            except FileExistsError:
+                print('Path exists '+ os.path.split(im_path)[0])
+            print(True)
+            try:
+                os.mkdir(im_path)
+            except FileExistsError:
+                print('Path exists '+ im_path)
+            
+
+        shift_images = []
+        for i,im in enumerate(images):
+            shift_x = X_shifts[i]
+            shift_y = Y_shifts[i]
+            rotation =Rotations[i]
+            session = self.sessions[i]
+            shear = Shears[i]
+
+            if i ==0:
+                im_shifted=im.copy()
+            else:
+                im_shifted = self.apply_shifts_image(im,shift_x,shift_y,rotation,shear)        
+            shift_images.append(im_shifted)
+        
+            tifffile.imwrite(os.path.join(im_path, self.animal + '_' + self.FOV + '_' + session + '_affine_shift.tif'), im_shifted)
+    
+    def apply_shifts_to_footprints(self,footprints_3D,translation_x=0,translation_y=0,rotation=0,shear=0):
+        tform = AffineTransform(scale=(1.0, 1.0), rotation=rotation, shear=shear,
+                            translation=(translation_x,translation_y))
+        shifted_cells = []
+        for cell in footprints_3D:
+            shift_cell = warp(cell, tform.inverse)
+            shifted_cells.append(shift_cell)
+            
+        return np.array(shifted_cells)
+    
+    def apply_shifts_image(self,image,translation_x=0,translation_y=0,rotation=0,shear=0):
+        tform = AffineTransform(scale=(1.0, 1.0), rotation=rotation, shear=shear,
+                                translation=(translation_x,translation_y))
+        im_t = warp(image, tform.inverse)
+        return im_t    
+    
+    def plot_overlaid_rgb(self,im1,im2,scale_factor=3,gain=5,alpha=0.8):
+            rgb = hv.RGB(np.dstack([im1*gain,im2*gain,np.zeros((im1.shape[0],im1.shape[1]))])).opts(width=int(im1.shape[1])*scale_factor,
+                                                                                                height=int(im1.shape[0])*scale_factor,alpha=alpha)
+            return rgb
+    
+    def plot_translate(self,im1,im2,shift_x,shift_y,rotation=0,shear=0,gain=3):
+        tform = AffineTransform(scale=(1.0, 1.0), rotation=rotation, shear=shear,
+                            translation=(shift_x,shift_y))
+        im2_t = warp(im2, tform.inverse)
+        return self.plot_overlaid_rgb(im1,im2_t,gain=gain)
+    
 ###### plotting functions #########
     def plot_overlay_footprints(self,session_inds=None, cmap='jet', scale_factor=1):
         '''
@@ -256,6 +381,11 @@ class CellReg:
                                             height=int(dims[0] * scale_factor), alpha=.5)
         return plot
 
+    def plot_im_stack(self,images,cmap='gray',scale_factor=3):
+        im_dict = {i: hv.Image(im).opts(width=int(im.shape[1])*scale_factor,height=int(im.shape[0])*scale_factor,cmap=cmap) for i,im in enumerate(images)}
+        hmap = hv.HoloMap(im_dict,kdims=['images'])
+        return hmap
+    
     def discrete_colorscale(self,bvals, colors):
         """
         Creates plotly discrete colorscale for
