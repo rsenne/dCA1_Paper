@@ -7,7 +7,7 @@ import caiman as cm
 import tifffile
 import holoviews as hv
 from skimage.transform import warp, AffineTransform
-from scipy.io import savemat
+from scipy.io import savemat,loadmat
 
 __all__=['CellReg']
 
@@ -28,9 +28,10 @@ class CellReg:
         elif self.group=='GEN':
             self.sessions = ['fc','gen1','gen2','gen3','gen4']
 
-    def load_footprints_3D(self,select_sessions=False,shifted=False):
+    def load_footprints_3D(self,select_sessions=False,affine_shifted=False):
         '''
         :param select_sessions: default False. if True user clicks the footprint .mat files indivudally in chronological order.
+        : param affine_shifted: use original footprints or affine shifted ones 
         :return:
             self.footprints: list of N sessions, each entry is a 3D array of binarized cell roi footprints from that session
         '''
@@ -38,26 +39,33 @@ class CellReg:
             self.footprint_files = filedialog.askopenfilenames(title="Select the footprint files in chronological order of sessions")
             for i in range(N):
                 foot_file= filedialog.askopenfilename() ##CLICK THE FILES IN CHRONO ORDER!
-                self.footprint_files.append(footfile)
+                self.footprint_files.append(foot_file)
         else:
             sessions = self.metadata['Session'].loc[(self.metadata['Animal']==self.animal)&(self.metadata['FOV']==self.FOV)].values
             print('Make sure these are in order: ')
             print(sessions)
             print('If theyre not in order, run load_footprints_3D again and set select sessions to True to put them in order')
 
-            if shifted:
-                footprint_path = os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,'shifted_maps')
-                fotprint_files = [os.path.join(footprint_path,self.animal+'_'+session+'_shifted_footprints.mat') for session in sessions]
+            if affine_shifted:
+                footprint_path = os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,'shifted_footprints')
+                footprint_files = [os.path.join(footprint_path,self.animal+'_'+self.FOV+'_'+session+'_shifted_footprints.mat') for session in sessions]
+                print(footprint_files)
+                foots_float =[]
+                for f in footprint_files:
+                    try:
+                        foot_file = h5py.File(f, 'r')
+                    except:
+                        foot_file = loadmat(f)
+                    foots_float.append(foot_file.get('footprints_shifted')[()])
             else:
                 footprint_path =os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,'converted_maps')
                 footprint_files = [os.path.join(footprint_path,self.animal+'_'+session+'_G&B_converted.mat') for session in sessions]
-            print(footprint_files)
+                print(footprint_files)
 
-        foots_float =[]
-        for f in footprint_files:
-            foot_file = h5py.File(f, 'r')
-            foot_file.get('this_session_converted_footprints')[()].transpose((2, 1, 0))
-            foots_float.append(foot_file.get('this_session_converted_footprints')[()].transpose((2, 1, 0)))
+                foots_float =[]
+                for f in footprint_files:
+                    foot_file = h5py.File(f, 'r')
+                    foots_float.append(foot_file.get('this_session_converted_footprints')[()].transpose((2, 1, 0)))
 
         self.footprints = [self.convert_foots_to_masks(foots_float[i]) for i in range(len(foots_float))]  # must convert to masks if imported footprints from inscopix helper files.        return self.footprints
         
@@ -157,27 +165,35 @@ class CellReg:
 
         return self.corr_ims
     
-    def get_summary_images(self,image_type='max dff'):
+    def get_summary_images(self,image_type='max dff',shifted=True):
         if image_type not in ['max dff', 'mean', 'min', 'max', 'std','corr']:
             raise Exception("Image type not supported, choose max dff, mean, min, max, std or corr")
 
         if image_type=='max dff':
-            images_path = os.path.join(self.base_directory,'Summary_Images',self.animal+'_'+self.FOV,'DFF')
+            if not shifted:
+                images_path = os.path.join(self.base_directory,'Summary_Images',self.animal+'_'+self.FOV,'DFF')
+            else:
+                images_path = os.path.join(self.base_directory,'Summary_Images',self.animal+'_'+self.FOV,'affine_shifted_images')
         else:
-            images_path = os.path.join(self.base_directory,'Summary_Images',self.animal+'_'+self.FOV,'MC')
-
-        if image_type == 'max dff':
-            image_files = [os.path.join(images_path,f) for f in os.listdir(images_path)]
-        elif image_type == 'max':
-            image_files = [os.path.join(images_path,f) for f in os.listdir(images_path) if 'MaxProj' in f]
-        elif image_type == 'mean':
-            image_files = [os.path.join(images_path,f) for f in os.listdir(images_path) if 'MeanProj' in f]
-        elif image_type == 'min':
-            image_files = [os.path.join(images_path,f) for f in os.listdir(images_path) if 'MinProj' in f]
-        elif image_type == 'std':
-            image_files = [os.path.join(images_path,f) for f in os.listdir(images_path) if 'STDProj' in f]
-        elif image_type == 'corr':
-            image_files = [os.path.join(images_path,f) for f in os.listdir(images_path) if 'CorrImage' in f]
+            if not shifted:
+                images_path = os.path.join(self.base_directory,'Summary_Images',self.animal+'_'+self.FOV,'MC')
+            if shifted:
+                raise Exception('No shifted images of this type exist')
+        try:
+            if image_type == 'max dff':
+                image_files = [os.path.join(images_path,f) for f in os.listdir(images_path)]
+            elif image_type == 'max':
+                image_files = [os.path.join(images_path,f) for f in os.listdir(images_path) if 'MaxProj' in f]
+            elif image_type == 'mean':
+                image_files = [os.path.join(images_path,f) for f in os.listdir(images_path) if 'MeanProj' in f]
+            elif image_type == 'min':
+                image_files = [os.path.join(images_path,f) for f in os.listdir(images_path) if 'MinProj' in f]
+            elif image_type == 'std':
+                image_files = [os.path.join(images_path,f) for f in os.listdir(images_path) if 'STDProj' in f]
+            elif image_type == 'corr':
+                image_files = [os.path.join(images_path,f) for f in os.listdir(images_path) if 'CorrImage' in f]
+        except FileNotFoundError:
+            print('Image files not found please check filepaths & image type')
 
         image_files.sort()
 
@@ -189,7 +205,7 @@ class CellReg:
         return self.image_files
 
 ######## affine transform functions ###########
-    def export_affine_shift_footprints(self,footprints,X_shifts,Y_shifts,Rotations,Shears):
+    def export_affine_shift_footprints(self,footprints_all,X_shifts,Y_shifts,Rotations,Shears):
         try:
             os.mkdir(os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV))
         except FileExistsError:
@@ -207,6 +223,8 @@ class CellReg:
             rotation = Rotations[i]
             session = self.sessions[i]
             shear = Shears[i]
+            footprints = footprints_all[i]
+
             shifted = self.apply_shifts_to_footprints(footprints,shift_x,shift_y,rotation,shear)
             
             savemat(os.path.join(savepath,self.animal+'_'+self.FOV+'_'+session+'_shifted_footprints.mat'),{'footprints_shifted':shifted,'shift_x':shift_x,'shift_y':shift_y,'rotation':rotation,'shear':shear})
@@ -244,6 +262,7 @@ class CellReg:
             tifffile.imwrite(os.path.join(im_path, self.animal + '_' + self.FOV + '_' + session + '_affine_shift.tif'), im_shifted)
     
     def apply_shifts_to_footprints(self,footprints_3D,translation_x=0,translation_y=0,rotation=0,shear=0):
+        print(footprints_3D.shape)
         tform = AffineTransform(scale=(1.0, 1.0), rotation=rotation, shear=shear,
                             translation=(translation_x,translation_y))
         shifted_cells = []
@@ -381,8 +400,11 @@ class CellReg:
                                             height=int(dims[0] * scale_factor), alpha=.5)
         return plot
 
-    def plot_im_stack(self,images,cmap='gray',scale_factor=3):
-        im_dict = {i: hv.Image(im).opts(width=int(im.shape[1])*scale_factor,height=int(im.shape[0])*scale_factor,cmap=cmap) for i,im in enumerate(images)}
+    def plot_im_stack(self,images,titles=None,cmap='gray',scale_factor=3):
+        if titles ==None:
+            im_dict = {i: hv.Image(im).opts(width=int(im.shape[1])*scale_factor,height=int(im.shape[0])*scale_factor,cmap=cmap,xaxis=None,yaxis=None) for i,im in enumerate(images)}
+        else:
+            im_dict = {titles[i]: hv.Image(im).opts(width=int(im.shape[1])*scale_factor,height=int(im.shape[0])*scale_factor,cmap=cmap,xaxis=None,yaxis=None) for i,im in enumerate(images)}
         hmap = hv.HoloMap(im_dict,kdims=['images'])
         return hmap
     
@@ -501,7 +523,6 @@ class CellReg:
                                                 colors_list=colors_list,max_pct=max_pct)
         fig.update_layout(title='mouse: ' + self.animal + ' ' + self.FOV)
         fig.show(config={'scrollZoom': True})
-
 
     def plot_reg_pairs(self,session_inds, image_list, idx_list, min_pct='default', max_pct='default'):
 
