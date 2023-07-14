@@ -6,13 +6,15 @@ import h5py
 import caiman as cm
 import tifffile
 import holoviews as hv
+from plotly.subplots import make_subplots
+from pygments.lexers import go
 from skimage.transform import warp, AffineTransform
 from scipy.io import savemat,loadmat
 
 __all__=['CellReg']
 
 class CellReg:
-    def __init__(self,animal:str,fov:str,N_sessions:int):
+    def __init__(self,animal:str,fov:str,N_sessions:int,session_inds:int=None):
         # self.base_directory = filedialog.askdirectory(title='Choose Experiment Directory')
         # self.metadata_file = filedialog.askopenfilename(title='Choose metadata csv file')
         self.base_directory = r"C:\Users\RamirezLab\Desktop\Rebecca"
@@ -27,6 +29,13 @@ class CellReg:
             self.sessions = ['fc','recall','ext1','ext2','ext3']
         elif self.group=='GEN':
             self.sessions = ['fc','gen1','gen2','gen3','gen4']
+        
+        if session_inds is not None:
+            self.sessions = [self.sessions[ind] for ind in session_inds]
+            self.session_inds=session_inds
+            print('only sessions: ')
+            for session in self.sessions:
+                print(session)
 
     def load_footprints_3D(self,select_sessions=False,affine_shifted=False):
         '''
@@ -37,7 +46,7 @@ class CellReg:
         '''
         if select_sessions:
             self.footprint_files = filedialog.askopenfilenames(title="Select the footprint files in chronological order of sessions")
-            for i in range(N):
+            for i in range(self.N_sessions):
                 foot_file= filedialog.askopenfilename() ##CLICK THE FILES IN CHRONO ORDER!
                 self.footprint_files.append(foot_file)
         else:
@@ -46,29 +55,32 @@ class CellReg:
             print(sessions)
             print('If theyre not in order, run load_footprints_3D again and set select sessions to True to put them in order')
 
-            if affine_shifted:
-                footprint_path = os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,'shifted_footprints')
-                footprint_files = [os.path.join(footprint_path,self.animal+'_'+self.FOV+'_'+session+'_shifted_footprints.mat') for session in sessions]
-                print(footprint_files)
-                foots_float =[]
-                for f in footprint_files:
-                    try:
-                        foot_file = h5py.File(f, 'r')
-                    except:
-                        foot_file = loadmat(f)
-                    foots_float.append(foot_file.get('footprints_shifted')[()])
-            else:
-                footprint_path =os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,'converted_maps')
-                footprint_files = [os.path.join(footprint_path,self.animal+'_'+session+'_G&B_converted.mat') for session in sessions]
-                print(footprint_files)
-
-                foots_float =[]
-                for f in footprint_files:
+        if affine_shifted:
+            footprint_path = os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,'shifted_footprints')
+            footprint_files = [os.path.join(footprint_path,self.animal+'_'+self.FOV+'_'+session+'_shifted_footprints.mat') for session in self.sessions]
+            print(footprint_files)
+            foots_float =[]
+            for f in footprint_files:
+                try:
                     foot_file = h5py.File(f, 'r')
-                    foots_float.append(foot_file.get('this_session_converted_footprints')[()].transpose((2, 1, 0)))
+                except:
+                    foot_file = loadmat(f)
+                foots_float.append(foot_file.get('footprints_shifted')[()])
+        else:
+            footprint_path =os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,'converted_maps')
+            footprint_files = [os.path.join(footprint_path,self.animal+'_'+session+'_G&B_converted.mat') for session in self.sessions]
+            print(footprint_files)
+
+            foots_float =[]
+            for f in footprint_files:
+                foot_file = h5py.File(f, 'r')
+                foots_float.append(foot_file.get('this_session_converted_footprints')[()].transpose((2, 1, 0)))
 
         self.footprints = [self.convert_foots_to_masks(foots_float[i]) for i in range(len(foots_float))]  # must convert to masks if imported footprints from inscopix helper files.        return self.footprints
-        
+    
+        if self.session_inds is not None:
+            self.footprints=[self.footprints[i] for i in self.session_inds]
+
         return self.footprints
     
     def load_shifted_footprints_2D(self):
@@ -88,8 +100,8 @@ class CellReg:
             self.footprints_reg.append(sum_foot_aligned)
         return self.footprints_reg
     
-    def resize_images(self,image_type):
-        image_files = self.get_summary_images(image_type)
+    def resize_images(self,image_type,shifted = True,session_inds=None):
+        image_files = self.get_summary_images(image_type,shifted=shifted,session_inds=session_inds)
         images = [tifffile.imread(file) for file in image_files]
         rows = [im.shape[0] for im in images]
         cols = [im.shape[1] for im in images]
@@ -98,8 +110,8 @@ class CellReg:
         resized = [im[0:i,0:j] for im in images]
         return resized
 
-    def resize_foots(self):
-        footprints = self.load_footprints_3D()
+    def resize_foots(self,select_sessions=False):
+        footprints = self.load_footprints_3D(select_sessions=select_sessions)
         cells = [im.shape[0] for im in footprints]
         rows = [im.shape[1] for im in footprints]
         cols = [im.shape[2] for im in footprints]
@@ -165,7 +177,7 @@ class CellReg:
 
         return self.corr_ims
     
-    def get_summary_images(self,image_type='max dff',shifted=True):
+    def get_summary_images(self,image_type='max dff',shifted=True,session_inds=None):
         if image_type not in ['max dff', 'mean', 'min', 'max', 'std','corr']:
             raise Exception("Image type not supported, choose max dff, mean, min, max, std or corr")
 
@@ -196,12 +208,19 @@ class CellReg:
             print('Image files not found please check filepaths & image type')
 
         image_files.sort()
-
-        if self.group == 'EXT':
-            self.image_files = [image_files[3],image_files[-1],image_files[0],image_files[1],image_files[2]]
-        elif self.group =='GEN':
+        
+        try:
+            if self.group == 'EXT':
+                self.image_files = [image_files[3],image_files[-1],image_files[0],image_files[1],image_files[2]]
+            elif self.group =='GEN':
+                self.image_files = image_files
+            
+            if session_inds is not None:
+                self.image_files = [self.image_files[ind] for ind in session_inds]
+        
+        except IndexError:
             self.image_files = image_files
-
+        print(image_files)
         return self.image_files
 
 ######## affine transform functions ###########
@@ -243,7 +262,6 @@ class CellReg:
                 os.mkdir(im_path)
             except FileExistsError:
                 print('Path exists '+ im_path)
-            
 
         shift_images = []
         for i,im in enumerate(images):
@@ -477,9 +495,9 @@ class CellReg:
             zmin = self.im_scale(max_proj)[0]
 
             if max_pct is None:
-                zmax = im_scale(max_proj, max_pct=self.im_scale(max_proj)[1])[1]
+                zmax = self.im_scale(max_proj, max_pct=self.im_scale(max_proj)[1])[1]
             else:
-                zmax = im_scale(max_proj, max_pct=max_pct)[1]
+                zmax = self.im_scale(max_proj, max_pct=max_pct)[1]
 
             fig.add_trace(go.Heatmap(z=max_proj, colorscale='gray', showscale=False, zmin=zmin, zmax=zmax), 1, j + 1)
             fig.add_trace(go.Heatmap(z=final_maxA, colorscale=dcolorsc, opacity=opacity, showscale=False, zmin=0,
@@ -545,7 +563,7 @@ class CellReg:
             idxs = idx_list[j]
             holomap = hv.HoloMap(kdims='registration pair index')
             for k, idx in enumerate(idxs):
-                panel = roi_plot(footprints_list[j], idx, im, min_pct=min_pct, max_pct=max_pct)
+                panel = self.roi_plot(footprints_list[j], idx, im, min_pct=min_pct, max_pct=max_pct)
                 holomap[k] = panel
                 gridspace[0, j] = holomap
 
