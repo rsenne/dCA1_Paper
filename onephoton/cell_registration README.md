@@ -1,4 +1,12 @@
 # Cell Registration Pipeline
+### Required python packages 
+- tifffile
+- holoviews 
+- matplotlib
+- scipy
+- numpy
+- skimage
+- pandas
 
 ### 1. Folder structure
 Create subfolders for each animal's fov
@@ -19,7 +27,7 @@ Create subfolders for each animal's fov
 4) Export Max DF/F Projection as tif: BaseDirectory/Summary_Images/DFF/{ani}_{session}_maxproj.tiff
 
 ### 3. Create correlation images - optional - maybe remove from pipeline. 
-1) Run correlation_image.py to generate correlation images and save them. *Requires Caiman* 
+1) generate correlation images and save them. *Requires Caiman* 
 
 ### 4. Convert Inscopix footprints 
 using CellReg's helper file (.../CellReg/Helper/format_conversion_inscopix.m)
@@ -38,5 +46,6 @@ using CellReg's helper file (.../CellReg/Helper/format_conversion_inscopix.m)
 3) TODO: redo cell reg after affine transform alignment 
 
 ### 7. Run Manual Quality Control
-1) TODO: clean up eval_cellreg.ipynb
-2) TODO: Test CellReg class and debug, download example images 
+1) eval_cellreg.ipynb
+2) save results as animal_cell_reg.csv 
+

@@ -11,7 +11,7 @@ from pygments.lexers import go
 from skimage.transform import warp, AffineTransform
 from scipy.io import savemat,loadmat
 
-__all__=['CellReg']
+__all__ = ["CellReg"]
 
 class CellReg:
     def __init__(self,animal:str,fov:str,N_sessions:int,session_inds:int=None):
@@ -36,6 +36,12 @@ class CellReg:
             print('only sessions: ')
             for session in self.sessions:
                 print(session)
+
+######### footprint functions  ###########
+    def load_registration_table(self):
+        path = os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,self.animal+'_cell_reg.csv')
+        self.index_table = pd.read_csv(path)
+        return self.index_table
 
     def load_footprints_3D(self,select_sessions=False,affine_shifted=False):
         '''
@@ -78,8 +84,11 @@ class CellReg:
 
         self.footprints = [self.convert_foots_to_masks(foots_float[i]) for i in range(len(foots_float))]  # must convert to masks if imported footprints from inscopix helper files.        return self.footprints
     
-        if self.session_inds is not None:
-            self.footprints=[self.footprints[i] for i in self.session_inds]
+        try:
+            if self.session_inds is not None:
+                self.footprints=[self.footprints[i] for i in self.session_inds]
+        except AttributeError:
+            pass
 
         return self.footprints
     
@@ -99,16 +108,6 @@ class CellReg:
             sum_foot_aligned = self.convert_foots_to_masks(foot_aligned)
             self.footprints_reg.append(sum_foot_aligned)
         return self.footprints_reg
-    
-    def resize_images(self,image_type,shifted = True,session_inds=None):
-        image_files = self.get_summary_images(image_type,shifted=shifted,session_inds=session_inds)
-        images = [tifffile.imread(file) for file in image_files]
-        rows = [im.shape[0] for im in images]
-        cols = [im.shape[1] for im in images]
-        i = np.min(rows)
-        j = np.min(cols)
-        resized = [im[0:i,0:j] for im in images]
-        return resized
 
     def resize_foots(self,select_sessions=False):
         footprints = self.load_footprints_3D(select_sessions=select_sessions)
@@ -158,6 +157,17 @@ class CellReg:
         print(str(reg_ind.shape[0]) + ' Unique cells detected in registration')  # how many cells in total detected
 
         return self.reg_ind
+
+######### image functions ##########
+    def resize_images(self,image_type,shifted = True,session_inds=None):
+        image_files = self.get_summary_images(image_type,shifted=shifted,session_inds=session_inds)
+        images = [tifffile.imread(file) for file in image_files]
+        rows = [im.shape[0] for im in images]
+        cols = [im.shape[1] for im in images]
+        i = np.min(rows)
+        j = np.min(cols)
+        resized = [im[0:i,0:j] for im in images]
+        return resized
     
     def generate_corr_images(self,save=True):
         '''
@@ -411,11 +421,11 @@ class CellReg:
             clim = self.im_scale(image, min_pct, max_pct)
 
             plot = hv.Image(image).opts(cmap=cmap_image, clim=clim, width=int(dims[1] * scale_factor),
-                                        height=int(dims[0] * scale_factor)) * hv.Image(sum_masks).opts(cmap='hsv',
+                                        height=int(dims[0] * scale_factor),xaxis=None,yaxis=None) * hv.Image(sum_masks).opts(cmap='hsv',
                                                                                                        alpha=.5)
         else:
             plot = hv.Image(sum_masks).opts(cmap=cmap_roi, width=int(dims[1] * scale_factor),
-                                            height=int(dims[0] * scale_factor), alpha=.5)
+                                            height=int(dims[0] * scale_factor), alpha=.5,xaxis=None,yaxis=None)
         return plot
 
     def plot_im_stack(self,images,titles=None,cmap='gray',scale_factor=3):
