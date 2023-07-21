@@ -17,8 +17,10 @@ class CellReg:
     def __init__(self,animal:str,fov:str,N_sessions:int,session_inds:int=None):
         # self.base_directory = filedialog.askdirectory(title='Choose Experiment Directory')
         # self.metadata_file = filedialog.askopenfilename(title='Choose metadata csv file')
-        self.base_directory = r"C:\Users\RamirezLab\Desktop\Rebecca"
-        self.metadata_file = r"C:\Users\RamirezLab\Desktop\Rebecca\Data_info_astro.csv"
+        # self.base_directory = r"C:\Users\RamirezLab\Desktop\Rebecca"
+        # self.metadata_file = r"C:\Users\RamirezLab\Desktop\Rebecca\Data_info_astro.csv"
+        self.base_directory = "/Users/amonast/Desktop/dCA1_astro"
+        self.metadata_file = "/Users/amonast/Desktop/dCA1_astro/Data_info_astro.csv"
         self.animal = animal
         self.FOV = fov
         self.N_sessions = N_sessions
@@ -40,7 +42,7 @@ class CellReg:
 ######### footprint functions  ###########
     def load_registration_table(self):
         path = os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,self.animal+'_cell_reg.csv')
-        self.index_table = pd.read_csv(path)
+        self.index_table = pd.read_csv(path,header=None)
         return self.index_table
 
     def load_footprints_3D(self,select_sessions=False,affine_shifted=False):
@@ -328,10 +330,13 @@ class CellReg:
         return: holoviews overlay object
         '''
         #convert list of footprints to 3d array
-        if type(self.footprints_reg) == list:
-            array_foots = np.array(self.footprints_reg)
-        else:
-            array_foots=self.footprints_reg
+        try:
+            if type(self.footprints_reg) == list:
+                array_foots = np.array(self.footprints_reg)
+            else:
+                array_foots=self.footprints_reg
+        except AttributeError:
+            self.load_shifted_footprints_2D()
         ### optional, choose only some sessions to overlay
         if session_inds is None:
             overlay_foots = array_foots.sum(axis=0)
