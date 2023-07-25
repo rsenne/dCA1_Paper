@@ -1,3 +1,5 @@
+import tkinter.filedialog
+
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
@@ -7,13 +9,14 @@ import matplotlib.pyplot as plt
 __all__ = ["InscopixProcessing"]
 
 
-class InscopixProcessing:
+class InscopixProcessing(CellReg_path = None):
     def __init__(self, filename):
         self.filename = filename
         self.all_cells = None
         self.rejected = None
         self.accepted = None
 
+        self.CellReg_path = tkinter.filedialog.askdirectory("Select CellReg path")
     def read_inscopix(self):
         df = pd.read_csv(self.filename, header=[0, 1], index_col=0)
         # accepted needs a space because these files were saved poorly

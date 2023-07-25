@@ -1,1 +1,11 @@
+*.pyc
+*.png
+*.csv
+*.DS_Store
+.DS_Store
+*.pycs
+*checkpoint.ipynb
+*vscode*
+*.csv
+*.png
 *.idea
