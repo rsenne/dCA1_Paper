@@ -13,11 +13,27 @@ import plotly.offline as py
 import plotly.graph_objs as go
 import plotly.express as px
 from plotly.subplots import make_subplots
+from scipy.stats import zscore
+
 # mpl.use('TkAgg')
+#%%
+################# Fig 1C ################# representative traces
+fc_astro = pd.read_csv('/Users/amonast/Desktop/dCA1_astro/Cell_Traces/astro5_traces/astro5_ext1_traces.csv')
+fc_astro_accepted = fc_astro.columns[fc_astro.isin([' accepted']).any()]
+fc_astro = fc_astro[fc_astro_accepted]
+traces = fc_astro.iloc[1:,:].values.astype(float)
+zscored = zscore(traces,axis=0)
+n=15
+fig, axs = plt.subplots(n, 1, sharex='col', figsize=(10, 8))
+for i in range(n):
+    axs[i].plot(zscored[:4000,i], color='k')
+    axs[i].axis('off')
+
+fig.savefig('/Users/amonast/Desktop/dCA1_astro/Figures/astro5_recall_rep_fig1.png')
 #%%
 ########## Figure 1E #############
 ## Number of astrocytes active ##
-#%%
+
 n_sessions =5
 DF = pd.DataFrame()
 for ani in ['astro3','astro4','astro5','astro6','astro7','astro8','astro9','astro10']:
@@ -29,20 +45,39 @@ for ani in ['astro3','astro4','astro5','astro6','astro7','astro8','astro9','astr
     data = {'# Cells':series,'Animal':[ani]*n_sessions,'Group':[astro.group]*n_sessions,'Day':[0,1,2,3,4]}
     df = pd.DataFrame(data=data)
     DF = pd.concat([DF,df])
+
+DF['Group_name']=DF['Group'].map({'EXT': 'Ext', 'GEN': 'Neutral'})
 # 
 # ALL CELLS each session
 font = {'family' : 'Arial',
         'weight' : 'bold',
         'size'   : 10}
 mpl.rc('font',**font)
-
+#%%
 plt.figure(figsize=(3,4))
 #sb.lineplot(data=DF,x='Day',y='# Cells',hue='Group',err_style='bars')
-sb.pointplot(data=DF,x='Day',y='# Cells',hue='Group',errorbar='se')
-plt.xlabel('Day',weight='bold')
-plt.ylabel('# Astrocytes Active',weight='bold')
+sb.pointplot(data=DF,x='Day',y='# Cells',hue='Group_name',errorbar='se',palette='Set2',hue_order=['Neutral','Ext'])
+plt.xlabel('Day',weight='bold',size=15)
+plt.ylabel('# Astrocytes Active',weight='bold',size=15)
+plt.gca().spines[['right', 'top']].set_visible(False)
+plt.gca().spines[['left','bottom']].set_linewidth(2)
+plt.gca().tick_params(width=2,labelsize=15)
+plt.gca().legend().set_title('')
+
+plt.ylim([40,150])
+plt.hlines(y=115,xmin=0,xmax=3,color='k')
+plt.text(1.5,114,'*',size=18,ha='center')
+plt.hlines(y=125,xmin=0,xmax=2,color='k')
+plt.text(1,124,'*',size=18,ha='center')
+plt.hlines(y=135,xmin=0,xmax=1,color='k')
+plt.text(0.5,134,'**',size=18,ha='center')
 plt.tight_layout()
 plt.savefig('/Users/amonast/Desktop/dCA1_astro/Figures/all_cells.png')
+#%% stats 
+import pingouin as pg
+mix_anova = pg.mixed_anova(data=DF,dv='# Cells',between='Group',subject='Animal',within='Day')
+posthoc = pg.pairwise_tests(data=DF,dv='# Cells',between='Group',within='Day',subject='Animal',padjust='fdr_bh')
+
 #%%
 ############# Supplementary Figure 1 ################
 ############# EXT Group - FC Registrations ##########
@@ -127,6 +162,9 @@ animals = ['astro3','astro5']
 all_overlap=[]
 all_cells = []
 all_stable = []
+
+color_discrete_sequence = ['rgb(255,255,255)']+px.colors.qualitative.Set2
+
 for ani in animals:
     astro = cell_registration.CellReg(animal=ani,fov='FOV1',N_sessions=n_sessions)
         
@@ -171,13 +209,14 @@ for i in range(n_sessions-1):
                     parents='parent',
                     values='value',
                     )._data
+    
 
     # traces with separate domains to form a subplot
     trace = go.Sunburst(labels=sb[0]['labels'],
                             parents=sb[0]['parents'],
                             values=sb[0]['values'],
-                            domain={'x': [X[i][0],X[i][1]], 'y': [0.0, 1]})
-    
+                            domain={'x': [X[i][0],X[i][1]], 'y': [0.0, 1]},
+                            marker=dict(colors=color_discrete_sequence))
     traces.append(trace)
 
 layout = go.Layout(height = 600,
@@ -196,6 +235,7 @@ all_overlap=[]
 all_cells = []
 all_stable = []
 
+color_discrete_sequence = ['rgb(255,255,255)']+px.colors.qualitative.Dark2
 for ani in animals:
     astro = cell_registration.CellReg(animal=ani,fov='FOV1',N_sessions=n_sessions)
         
@@ -245,7 +285,8 @@ for i in range(n_sessions-1):
     trace = go.Sunburst(labels=sb[0]['labels'],
                             parents=sb[0]['parents'],
                             values=sb[0]['values'],
-                            domain={'x': [X[i][0],X[i][1]], 'y': [0.0, 1]})
+                            domain={'x': [X[i][0],X[i][1]], 'y': [0.0, 1]},
+                            marker=dict(colors=color_discrete_sequence))
     
     traces.append(trace)
 layout = go.Layout(height = 600,
