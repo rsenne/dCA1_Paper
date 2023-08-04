@@ -193,7 +193,7 @@ cells_arr = np.array(all_cells).sum(axis=0)
 stable_n = np.sum(all_stable)
 
 traces=[]
-sessions=astro.sessions[1:]
+sessions=['Recall', 'Ext1','Ext2','Ext3']
 X=[(0, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 1.0)]
 for i in range(n_sessions-1):
 
@@ -216,14 +216,12 @@ for i in range(n_sessions-1):
                             parents=sb[0]['parents'],
                             values=sb[0]['values'],
                             domain={'x': [X[i][0],X[i][1]], 'y': [0.0, 1]},
-                            marker=dict(colors=color_discrete_sequence))
+                            marker=dict(colors=color_discrete_sequence),
+                            textfont=dict(size=25, color='#000000'))
     traces.append(trace)
 
-layout = go.Layout(height = 600,
-                   width = 600,
-                   autosize = False,
-                   title = 'Side by side px.Sunburst diagrams')
-fig = go.Figure(data = traces)
+layout = go.Layout(height = 600,width = 1200,autosize = False)
+fig = go.Figure(data = traces,layout=layout)
 fig.show()
 
 fig.write_image("/Users/amonast/Desktop/dCA1_astro/Figures/EXT_donuts_allcells.png",scale=2)
@@ -264,7 +262,7 @@ cells_arr = np.array(all_cells).sum(axis=0)
 stable_n = np.sum(all_stable)
 
 traces=[]
-sessions=astro.sessions[1:]
+sessions=['Neutral1', 'Neutral2','Neutral3','Neutral4']
 X=[(0, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 1.0)]
 for i in range(n_sessions-1):
 
@@ -275,26 +273,57 @@ for i in range(n_sessions-1):
                 value=[0, cells_arr[i]-overlaps_arr[i], overlaps_arr[i], stable_n])
 
     # extract data and structure FROM px.sunburst
-    sb =px.sunburst(data,
+    sb = px.sunburst(data,
                     names='labels',
                     parents='parent',
-                    values='value',
-                    )._data
+                    values='value')._data
 
     # traces with separate domains to form a subplot
     trace = go.Sunburst(labels=sb[0]['labels'],
                             parents=sb[0]['parents'],
                             values=sb[0]['values'],
                             domain={'x': [X[i][0],X[i][1]], 'y': [0.0, 1]},
-                            marker=dict(colors=color_discrete_sequence))
+                            marker=dict(colors=color_discrete_sequence),
+                            textfont=dict(size=25, color='#000000'))
     
     traces.append(trace)
 layout = go.Layout(height = 600,
-                   width = 600,
-                   autosize = False,
-                   title = 'Side by side px.Sunburst diagrams')
-fig = go.Figure(data = traces)
+                   width = 1200,
+                   autosize = False)
+fig = go.Figure(data = traces,layout=layout)
 fig.show()
 
 fig.write_image("/Users/amonast/Desktop/dCA1_astro/Figures/GEN_donuts_allcells.png",scale=2)
+# %% ###### percentages ######
+n_sessions=5
+animals = ['astro7','astro8','astro9']
+all_overlap=[]
+all_cells = []
+all_stable = []
+
+color_discrete_sequence = ['rgb(255,255,255)']+px.colors.qualitative.Dark2
+for ani in animals:
+    astro = cell_registration.CellReg(animal=ani,fov='FOV1',N_sessions=n_sessions)
+        
+    #get total num cells for every session
+    n_cells=[]
+    for s in range(n_sessions-1):
+        session=s+1
+        sn_cells = astro.load_footprints_3D(affine_shifted=True)[session].shape[0]
+        n_cells.append(sn_cells)
+        
+    # get # of overlaps with FC(Day0); 1x4 array - get from first row of csv
+    overlaps = astro.load_registration_table().iloc[0,n_sessions:].values.astype(int)
+
+    #get stable number across all days 
+    inds = astro.load_registration_table().iloc[:,0:n_sessions].copy()
+    stable = inds.loc[(inds[0]!=-1) & (inds[1]!=-1) & (inds[2]!=-1) & (inds[3]!=-1) & (inds[4]!=-1)].shape[0]
+    
+    #store all values for this animal
+    all_stable.append(stable)
+    all_overlap.append(overlaps) #append it to some list or array A
+    all_cells.append(n_cells)
+
+props_stable  = [all_stable[ani]/all_cells[ani] for ani in range(len(animals))]
+props_fc = [all_overlap[ani]/all_overlap[ani] for ani in range(len(animals))]
 # %%
