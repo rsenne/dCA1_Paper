@@ -8,8 +8,6 @@ import seaborn as sb
 import matplotlib as mpl
 import tifffile
 hv.extension('bokeh')
-import plotly
-import plotly.offline as py
 import plotly.graph_objs as go
 import plotly.express as px
 from plotly.subplots import make_subplots
@@ -192,6 +190,7 @@ overlaps_arr = np.array(all_overlap).sum(axis=0)
 cells_arr = np.array(all_cells).sum(axis=0)
 stable_n = np.sum(all_stable)
 
+##%% pie charts
 traces=[]
 sessions=['Recall', 'Ext1','Ext2','Ext3']
 X=[(0, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 1.0)]
@@ -260,7 +259,7 @@ for ani in animals:
 overlaps_arr = np.array(all_overlap).sum(axis=0) 
 cells_arr = np.array(all_cells).sum(axis=0)
 stable_n = np.sum(all_stable)
-
+#%% pie charts 
 traces=[]
 sessions=['Neutral1', 'Neutral2','Neutral3','Neutral4']
 X=[(0, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 1.0)]
@@ -326,4 +325,39 @@ for ani in animals:
 
 props_stable  = [all_stable[ani]/all_cells[ani] for ani in range(len(animals))]
 props_fc = [all_overlap[ani]/all_overlap[ani] for ani in range(len(animals))]
+#%% Bar charts 
+n_sessions=5
+animals = ['astro3','astro5','astro7','astro8','astro9']
+DF = pd.DataFrame()
+for ani in animals:
+    astro = cell_registration.CellReg(animal=ani,fov='FOV1',N_sessions=n_sessions)
+    overlaps = astro.load_registration_table().iloc[0,n_sessions:].values.astype(int)
+
+    #get total num cells for every session
+    n_cells=[]
+    session_only_all=[]
+    for s in range(n_sessions-1):
+        session=s+1
+        sn_cells = astro.load_footprints_3D(affine_shifted=True)[session].shape[0]
+        n_cells.append(sn_cells)
+        session_only = sn_cells - overlaps[s]
+        session_only_all.append(session_only)
+
+        # print('total cells'+str(sn_cells))
+        # print('fc overlap cells'+str(overlaps[s]))
+        # print('session only'+str(session_only))
+    
+    df = pd.DataFrame()
+    df['Animal'] = [ani]*4
+    df['Group'] = [astro.group]*4
+    df['Day'] = ['Day1','Day2','Day3','Day4']
+    df['Session'] = astro.sessions[1:]
+    df['# Cells'] = n_cells
+    df['% Overlap FC'] =overlaps/np.array(n_cells)*100
+    df['% Non-overlap'] = np.array(session_only_all)/np.array(n_cells)*100
+    DF = pd.concat([DF,df])
+
+         
+    # get # of overlaps with FC(Day0); 1x4 array - get from first row of csv
+
 # %%
