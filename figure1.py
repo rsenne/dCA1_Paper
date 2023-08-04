@@ -357,7 +357,8 @@ for ani in animals:
     df['% Non-overlap'] = np.array(session_only_all)/np.array(n_cells)*100
     DF = pd.concat([DF,df])
 
-         
+sb.barplot(data=DF,hue='Group',x='Day',y='% Overlap FC',errorbar='se')
+sb.swarmplot(data=DF,dodge=True,hue='Group',x='Day',y='% Overlap FC')
     # get # of overlaps with FC(Day0); 1x4 array - get from first row of csv
 
 # %%
