@@ -5,7 +5,7 @@ import scipy.stats as stats
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import os 
-import cell_registration
+from .cell_registration import *
 __all__ = ["InscopixProcessing"]
 
 #%%
@@ -31,7 +31,7 @@ class InscopixProcessing():
 
     def get_registered_cells(self,stable_all=False):
         FOV = 'FOV1'
-        reg = cell_registration.CellReg(self.animal,fov=FOV,N_sessions=5,session_inds=None)
+        reg = CellReg(self.animal,fov=FOV,N_sessions=5,session_inds=None)
         inds_all = reg.load_registration_table()
         inds = inds_all.iloc[:,0:5].copy().astype(int)
         self.reg_inds = inds
