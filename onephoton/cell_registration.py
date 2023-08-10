@@ -236,7 +236,7 @@ class CellReg:
         return self.image_files
 
 ######## affine transform functions ###########
-    def export_affine_shift_footprints(self,footprints_all,X_shifts,Y_shifts,Rotations,Shears):
+    def export_affine_shift_footprints(self,footprints_all,X_shifts,Y_shifts,Rotations,Shears,session_inds=None):
         try:
             os.mkdir(os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV))
         except FileExistsError:
@@ -248,7 +248,12 @@ class CellReg:
 
         savepath = os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,'shifted_footprints')
         
-        for i in range(self.N_sessions):
+        if session_inds is not None:
+            num_sessions = len(session_inds)
+        else:
+            num_sessions = self.N_sessions
+        
+        for i in range(num_sessions):
             shift_x = X_shifts[i]
             shift_y = Y_shifts[i]
             rotation = Rotations[i]
