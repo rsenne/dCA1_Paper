@@ -1,7 +1,7 @@
 #%%
 import pandas as pd 
 from cell_registration import CellReg
-from onephoton import InscopixProcessing
+from onep import InscopixProcessing
 cellreg = CellReg('astro5','FOV1',N_sessions=5)
 reg_ind = cellreg.get_reg_ind()
 

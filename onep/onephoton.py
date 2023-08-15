@@ -5,7 +5,7 @@ import scipy.stats as stats
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import os 
-from cell_registration import *
+
 __all__ = ["InscopixProcessing"]
 
 #%%

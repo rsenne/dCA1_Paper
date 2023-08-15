@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import seaborn as sb
 import os
-from onephoton.onephoton import *
+from onep.onephoton import *
 # set data paths
 traces_dir = '/Users/amonast/Desktop/dCA1_astro/Cell_Traces'
 animal = 'astro5'
