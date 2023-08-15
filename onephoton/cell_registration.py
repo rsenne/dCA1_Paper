@@ -40,9 +40,13 @@ class CellReg:
                 print(session)
 
 ######### footprint functions  ###########
-    def load_registration_table(self):
+    def load_registration_table(self,session_inds=None):
         path = os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,self.animal+'_cell_reg.csv')
-        self.index_table = pd.read_csv(path,header=None)
+        if session_inds is None:
+            self.index_table = pd.read_csv(path,header=None).iloc[:,0:5].astype(int)
+        else:
+            self.index_table = pd.read_csv(path,header=None).iloc[:,session_inds].astype(int)
+
         return self.index_table
 
     def load_footprints_3D(self,select_sessions=False,affine_shifted=False):
@@ -84,8 +88,8 @@ class CellReg:
                 foot_file = h5py.File(f, 'r')
                 foots_float.append(foot_file.get('this_session_converted_footprints')[()].transpose((2, 1, 0)))
 
-        self.footprints = [self.convert_foots_to_masks(foots_float[i]) for i in range(len(foots_float))]  # must convert to masks if imported footprints from inscopix helper files.        return self.footprints
-    
+        self.footprints = [self.convert_foots_to_masks(foots_float[i]) for i in range(len(foots_float))]  # must convert to masks if imported footprints from inscopix helper files. 
+        
         try:
             if self.session_inds is not None:
                 self.footprints=[self.footprints[i] for i in self.session_inds]
@@ -96,11 +100,12 @@ class CellReg:
     
     def load_shifted_footprints_2D(self):
         '''
-        Load in multiple 3D arrays of shifted footprints from each session.
+        Load in multiple 2D array of all shifted footprints from CellReg.
         Footprints are shifted relative to inscopix images but aligned from CellReg ouptut
-        :return:
+        ** this includes all the cells given to CellReg including Isx rejected cells ** 
+        to exclude rejected cells use load_footprints_3D and 
             self.footprints_reg: list of N sessions,
-                                each entry is a 3D array of binarized cell roi footprints from that session, with applied shifts from CellReg
+                                each item is a 3D array of binarized cell roi footprints from that session, with applied shifts from CellReg
         '''
         aligned_map_file = h5py.File(os.path.join(self.base_directory,'CellReg',self.animal + '_' + self.FOV, 'aligned_data_struct.mat'))
         aligned_struct = aligned_map_file['aligned_data_struct']
@@ -112,7 +117,7 @@ class CellReg:
         return self.footprints_reg
 
     def resize_foots(self,select_sessions=False):
-        footprints = self.load_footprints_3D(select_sessions=select_sessions)
+        footprints = self.load_footprints_3D(select_sessions=select_sessions,)
         cells = [im.shape[0] for im in footprints]
         rows = [im.shape[1] for im in footprints]
         cols = [im.shape[2] for im in footprints]
@@ -131,7 +136,7 @@ class CellReg:
         footprints[footprints > 0] = 1
         return footprints
     
-    def get_reg_ind(self):
+    def get_reg_ind(self,isx_accepted=False):
         '''
         Get table of registered indices from CellReg from all sessions
         :param animal: animal name, str
@@ -145,18 +150,20 @@ class CellReg:
                                 Lookup table of registered cells from each session.
 
         '''
-        info = pd.read_csv(self.metadata_file)
-        # First get cell registration indices from CellReg output file & convert to pythonic indexing
-        # each column is a session, each row is a cell. each entry is that cell's index in that session. if cell was absent its entry is -1
-        reg_path = os.path.join(self.base_directory, 'CellReg' + os.path.sep + self.animal + '_' + self.FOV + os.path.sep)
-        reg_file = [os.path.join(reg_path, f) for f in os.listdir(reg_path) if 'cellRegistered' in f]
-        file = h5py.File(reg_file[-1], 'r') # chooses the last cellreg output file in the directory, make sure theres only 1 present!
-        group = file.get('cell_registered_struct')
-        dset = group.get('cell_to_index_map')
-        reg_ind = dset[()] - 1  # converting to python indexing
-        reg_ind = reg_ind.T
-        self.reg_ind = reg_ind.astype('int')
-        print(str(reg_ind.shape[0]) + ' Unique cells detected in registration')  # how many cells in total detected
+        if isx_accepted==False:
+            info = pd.read_csv(self.metadata_file)
+            # First get cell registration indices from CellReg output file & convert to pythonic indexing
+            # each column is a session, each row is a cell. each entry is that cell's index in that session. if cell was absent its entry is -1
+            reg_path = os.path.join(self.base_directory, 'CellReg' + os.path.sep + self.animal + '_' + self.FOV + os.path.sep)
+            reg_file = [os.path.join(reg_path, f) for f in os.listdir(reg_path) if 'cellRegistered' in f]
+            file = h5py.File(reg_file[-1], 'r') # chooses the last cellreg output file in the directory, make sure theres only 1 present!
+            group = file.get('cell_registered_struct')
+            dset = group.get('cell_to_index_map')
+            reg_ind = dset[()] - 1  # converting to python indexing
+            reg_ind = reg_ind.T
+            self.reg_ind = reg_ind.astype('int')
+            print(str(reg_ind.shape[0]) + ' Unique cells detected in registration')  # how many cells in total detected
+       #elif isx_accepted==True:
 
         return self.reg_ind
 
@@ -487,6 +494,7 @@ class CellReg:
 
         fig = make_subplots(rows=1, cols=n, horizontal_spacing=0.05, shared_yaxes=True, shared_xaxes=True)
         cx = 0
+        
         for j in session_inds:
             A = self.footprints[j]
             max_proj = images_list[j]
