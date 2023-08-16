@@ -109,7 +109,7 @@ class CellReg:
             pass
 
         return self.footprints
-    
+   
     def load_shifted_footprints_2D(self):
         '''
         Load in multiple 2D array of all shifted footprints from CellReg.

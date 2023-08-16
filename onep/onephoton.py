@@ -5,7 +5,7 @@ import scipy.stats as stats
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import os 
-
+from cell_registration import CellReg
 __all__ = ["InscopixProcessing"]
 
 #%%
@@ -13,82 +13,84 @@ class InscopixProcessing():
     def __init__(self, session, animal, data_directory):
         '''
         animal: string, must match in all filenames
-        session: string, must match in all filenames 
+        session: string, must match according to mouse group + filenames (i.e. 'fc','ext1','gen1')
         data_directory: home directory for experiment; contains subfolders for Cell_Traces, CellReg
         '''
-        try:
-            self.CellReg_path = os.path.join(data_directory,'CellReg')
-            self.Traces_path = os.path.join(data_directory,'Cell_Traces',animal+'_traces')
-        except OSError:
-            print("Couldnt find CellReg + Traces subfolders, check data directory & subfolders")
+        self.CellReg_path = os.path.join(data_directory,'CellReg')
+        self.Traces_path = os.path.join(data_directory,'Cell_Traces',animal+'_traces')
         
+        if not os.path.exists(self.CellReg_path):
+            raise FileNotFoundError("Couldnt find CellReg subfolder, check data directory & subfolders")
+        if not os.path.exists(self.Traces_path):
+            raise FileNotFoundError("Couldnt find Traces subfolder, check data directory & subfolders")
+        
+        self.session=session
         self.animal = animal
         self.filename = os.path.join(self.Traces_path,animal+'_'+session+'_traces.csv')
-        self.all_cells = None
+        self.all_traces = None
+        self.accepted_traces = None
+        self.rejected_traes = None
+        
         
     def read_inscopix(self):
-        df = pd.read_csv(self.filename, header=[0,1], index_col=0)
+        '''
+        Reads Inscopix trace csv file. 
+        '''
+        try:
+            df = pd.read_csv(self.filename, header=[0,1], index_col=0)
+        except FileNotFoundError:
+            raise Exception('traces csv file not found, check folder structure')
+        self.all_traces = df
+        
+        # accepted vs rejected traces
         # accepted needs a space because these files were saved poorly
-        accepted_cells = df.xs(" accepted", axis=1, level=1) 
-        rejected_cells = df.xs(" rejected", axis=1, level=1) 
-        self.accepted_cells = accepted_cells
-        self.rejected_cells = rejected_cells
+        accepted_traces = df.xs(" accepted", axis=1, level=1) 
+        rejected_traces = df.xs(" rejected", axis=1, level=1) 
+        self.accepted_traces = accepted_traces
+        self.rejected_traces = rejected_traces
 
-        accepted_df = pd.read_csv(self.filename,header=None,index_col=0).iloc[1].map({' accepted':True,' rejected':False}).rename('cell_status').reset_index(drop=True).reset_index()
-        self.accepted=accepted_df['index'].loc[accepted_df['cell_status']==True].values
-        self.rejected=accepted_df['index'].loc[accepted_df['cell_status']==False].values
-        self.all_cells = df
+        #accepted vs rejected cell indices 
+        self.accepted_df= pd.read_csv(self.filename,header=None,index_col=0).iloc[1].map({' accepted':True,' rejected':False}).rename('cell_status').reset_index(drop=True).reset_index()
+        self.accepted_inds=self.accepted_df['index'].loc[self.accepted_df['cell_status']==True].values
+        self.rejected_inds=self.accepted_df['index'].loc[self.accepted_df['cell_status']==False].values
+        
+    def get_traces(self,cell_inds=None):
+        '''
+        cell_inds: indices of which cell rois to get
+        returns: self.traces: N x T array of cell activity 
+        '''
+        try:
+            getattr(self,"all_traces")
+        except AttributeError:
+            self.read_inscopix()
 
-    def get_traces(self,type='dff',cell_inds=None):
-        self.read_inscopix()
-        traces = self.all_cells.values.T
         if cell_inds is not None:
-            return self.all_cells
+            return self.all_traces.values.T[cell_inds,:]
         else: 
-            return self.all_cells
+            return self.all_traces.values.T
     
-    def get_registered_cells(self,filter_accepted=True,stable_all=False,session_subset=None):
+    def load_registration_table(self,filter_accepted=True,session_subset=None):
         '''
-        stable all: bool set True for cells across all 5 sessions
-        session_subset: list, pass indices of session for registered cells; gives overlapping cells only.
-                        default None returns full look up table of registered indices
-        
-        returns: 
-            self.reg_inds: look up table of registered indices; filtered if specified by kwargs above
+        session_subset: (optional) list, session indices (i.e. 0 for fc, 1 for ext1/gen1 etc)
+        to do filter accepted
         '''
-        FOV = 'FOV1'
-        reg = CellReg(self.animal,fov=FOV,N_sessions=5,session_inds=None)
-        inds_all = reg.load_registration_table()
-        inds = inds_all.iloc[:,0:5].copy().astype(int)
-
-        ## filter out the accepted/rejected
-        
-        self.stable_inds = inds.loc[(inds[0]!=-1) & (inds[1]!=-1) & (inds[2]!=-1) & (inds[3]!=-1) & (inds[4]!=-1)].copy()
-
-        if stable_all:
-            return self.stable_inds
-        elif session_subset is not None:
-            print('Only getting overlap cells for sessions: ')
-            sessions = [reg.sessions[i] for i in session_subset]
-            print(sessions)
-            n_sessions = len(session_subset)
-            reg_all = inds.iloc[:,0:n_sessions+1].copy()
-            
-            try:
-                if len(session_subset) == 2:
-                    reg_inds= reg_all.loc[(reg_all[session_subset[0]]!=-1) & (reg_all[session_subset[1]]!=-1)].copy()
-                elif len(session_subset) == 3:
-                    reg_inds = reg_all.loc[(reg_all[session_subset[0]]!=-1) & (reg_all[session_subset[1]]!=-1) & (reg_all[session_subset[2]]!=-1)].copy().iloc[:,0:1]
-                elif len(session_subset) == 4:
-                    reg_inds= reg_all.loc[(reg_all[session_subset[0]]!=-1) & (reg_all[session_subset[1]]!=-1) & (reg_all[session_subset[2]]!=-1)&(reg_all[session_subset[3]]!=-1)].copy()
-            except IndexError:
-                print('Session subset must be between 2 and 4')
-            self.reg_inds = reg_inds
-            return self.reg_inds
-         
+        if session_subset is not None:
+            table = CellReg(self.animal,'FOV1').load_registration_table()
         else:
-            self.reg_inds = inds
-            return self.reg_inds
+            table = CellReg(self.animal,'FOV1',N_sessions=session_subset).load_registration_table()
+
+        return table
+
+    def classify_cells(self):
+        pass
+
+    def event_triggered_average(self):
+        pass
+
+
+# %%
+
+
     
     def classify_cells(self):
         pass
