@@ -49,3 +49,18 @@ using CellReg's helper file (.../CellReg/Helper/format_conversion_inscopix.m)
 1) eval_cellreg.ipynb
 2) save results as animal_cell_reg.csv 
 
+
+
+#%% example code
+#import pandas as pd 
+#from cell_registration import CellReg
+#from onephoton import InscopixProcessing
+
+#data_dir = '/Users/amonast/Desktop/dCA1_astro'
+#animal = 'astro5'
+#session= 'fc'
+#isx = InscopixProcessing(session,animal,data_directory=data_dir)
+#isx.read_inscopix()
+
+#reg = CellReg(animal,fov='FOV1',N_sessions=2,session_inds=[0,1])
+#reg_ind = reg.load_registration_table()

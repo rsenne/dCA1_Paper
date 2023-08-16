@@ -14,7 +14,14 @@ from scipy.io import savemat,loadmat
 __all__ = ["CellReg"]
 
 class CellReg:
-    def __init__(self,animal:str,fov:str,N_sessions:int,session_inds:int=None):
+    def __init__(self,animal:str,fov:str='FOV1',N_sessions:int=5,session_inds:int=None):
+        '''
+        animal: string, animal id (ex 'astro3')
+        fov: string 'FOV1'
+        N_sessions: int, number of sessions
+        session_inds: list: indices of which sessions to pull; 
+                    use if selecting a subset of sessions. N_Sessions must be len(session_inds)
+        '''
         # self.base_directory = filedialog.askdirectory(title='Choose Experiment Directory')
         # self.metadata_file = filedialog.askopenfilename(title='Choose metadata csv file')
         # self.base_directory = r"C:\Users\RamirezLab\Desktop\Rebecca"
@@ -26,6 +33,7 @@ class CellReg:
         self.N_sessions = N_sessions
         self.metadata = pd.read_csv(self.metadata_file)
         self.group = self.metadata['Group'].loc[self.metadata['Animal']==self.animal].values[0]
+        self.session_inds = session_inds
 
         if self.group=='EXT':
             self.sessions = ['fc','recall','ext1','ext2','ext3']
@@ -33,6 +41,8 @@ class CellReg:
             self.sessions = ['fc','gen1','gen2','gen3','gen4']
         
         if session_inds is not None:
+            if not self.N_sessions == len(session_inds):
+                raise AttributeError("self.N_sessions not equal to number of subsetted sessions")
             self.sessions = [self.sessions[ind] for ind in session_inds]
             self.session_inds=session_inds
             print('only sessions: ')
@@ -40,19 +50,21 @@ class CellReg:
                 print(session)
 
 ######### footprint functions  ###########
-    def load_registration_table(self,session_inds=None):
+    def load_registration_table(self):
+        '''
+        Loads in final output cell_to_index table after final manual evaluation.
+        '''
         path = os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,self.animal+'_cell_reg.csv')
-        if session_inds is None:
-            self.index_table = pd.read_csv(path,header=None).iloc[:,0:5].astype(int)
+        if self.session_inds is None:
+            self.registration_table = pd.read_csv(path,header=None).iloc[:,0:5].astype(int)
         else:
-            self.index_table = pd.read_csv(path,header=None).iloc[:,session_inds].astype(int)
-
-        return self.index_table
+            self.registration_table = pd.read_csv(path,header=None).iloc[:,self.session_inds].astype(int)
+        return self.registration_table
 
     def load_footprints_3D(self,select_sessions=False,affine_shifted=False):
         '''
         :param select_sessions: default False. if True user clicks the footprint .mat files indivudally in chronological order.
-        : param affine_shifted: use original footprints or affine shifted ones 
+        :param affine_shifted: use original footprints or affine shifted ones 
         :return:
             self.footprints: list of N sessions, each entry is a 3D array of binarized cell roi footprints from that session
         '''
@@ -163,7 +175,6 @@ class CellReg:
             reg_ind = reg_ind.T
             self.reg_ind = reg_ind.astype('int')
             print(str(reg_ind.shape[0]) + ' Unique cells detected in registration')  # how many cells in total detected
-       #elif isx_accepted==True:
 
         return self.reg_ind
 

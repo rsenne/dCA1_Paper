@@ -11,27 +11,7 @@ session= 'fc'
 isx = InscopixProcessing(session,animal,data_directory=data_dir)
 isx.read_inscopix()
 
+reg = CellReg(animal,fov='FOV1',N_sessions=2,session_inds=[0,1])
+reg_ind = reg.load_registration_table()
 
-#%% 
-def filter_all_isx:
-    if session_inds is None:
-            n_sessions = 5
-        ## for session in range(n_sessions):
 # %%
-def filter_session(traces,cell_class=='accepted')
-    
-    
-
-    if cell_class=='accepted':
-
-    elif cell_class=='rejected':
-        pass
-
-
-
-    #%%
-
-    ### test it out 
-    ## plot one cell roi next to its trace before filter
-    ## print filtered indices
-    ## plot the same cell after filtering 
