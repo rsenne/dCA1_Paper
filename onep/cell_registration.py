@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from tkinter import filedialog,simpledialog
 import h5py
-import caiman as cm
+# import caiman as cm
 import tifffile
 import holoviews as hv
 from plotly.subplots import make_subplots

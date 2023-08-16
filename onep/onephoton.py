@@ -16,18 +16,22 @@ class InscopixProcessing():
         session: string, must match in all filenames 
         data_directory: home directory for experiment; contains subfolders for Cell_Traces, CellReg
         '''
+        self.rejected = None
+        self.accepted = None
         try:
-            self.CellReg_path = os.path.join(data_directory,'CellReg')
-            self.Traces_path = os.path.join(data_directory,'Cell_Traces',animal+'_traces')
+            self.CellReg_path = os.path.join(data_directory, 'CellReg')
+            self.Traces_path = os.path.join(data_directory, 'Cell_Traces', animal + '_traces')
         except OSError:
             print("Couldnt find CellReg + Traces subfolders, check data directory & subfolders")
         
         self.animal = animal
-        self.filename = os.path.join(self.Traces_path,animal+'_'+session+'_traces.csv')
+        self.filename = os.path.join(self.Traces_path, animal + '_' + session + '_traces.csv')
         self.all_cells = None
+        self.accepted_cells = None
+        self.rejected_cells = None
         
     def read_inscopix(self):
-        df = pd.read_csv(self.filename, header=[0,1], index_col=0)
+        df = pd.read_csv(self.filename, header=[0, 1], index_col=0)
         # accepted needs a space because these files were saved poorly
         accepted_cells = df.xs(" accepted", axis=1, level=1) 
         rejected_cells = df.xs(" rejected", axis=1, level=1) 
@@ -35,8 +39,8 @@ class InscopixProcessing():
         self.rejected_cells = rejected_cells
 
         accepted_df = pd.read_csv(self.filename,header=None,index_col=0).iloc[1].map({' accepted':True,' rejected':False}).rename('cell_status').reset_index(drop=True).reset_index()
-        self.accepted=accepted_df['index'].loc[accepted_df['cell_status']==True].values
-        self.rejected=accepted_df['index'].loc[accepted_df['cell_status']==False].values
+        self.accepted = accepted_df['index'].loc[accepted_df['cell_status']==True].values
+        self.rejected = accepted_df['index'].loc[accepted_df['cell_status']==False].values
         self.all_cells = df
 
     def get_traces(self,type='dff',cell_inds=None):
@@ -47,7 +51,7 @@ class InscopixProcessing():
         else: 
             return self.all_cells
     
-    def get_registered_cells(self,filter_accepted=True,stable_all=False,session_subset=None):
+    def get_registered_cells(self, filter_accepted=True, stable_all=False, session_subset=None):
         '''
         stable all: bool set True for cells across all 5 sessions
         session_subset: list, pass indices of session for registered cells; gives overlapping cells only.
