@@ -29,24 +29,8 @@ class InscopixProcessing():
         self.filename = os.path.join(self.Traces_path,animal+'_'+session+'_traces.csv')
         self.all_traces = None
         self.accepted_traces = None
-        self.rejected_traes = None
-        
-        
-    def read_inscopix(self):
-        '''
-        Reads Inscopix trace csv file. 
-        '''
-        try:
-            df = pd.read_csv(self.filename, header=[0,1], index_col=0)
-        except FileNotFoundError:
-            raise Exception('traces csv file not found, check folder structure')
-        self.all_traces = df
-        
-        # accepted vs rejected traces
-        self.filename = os.path.join(self.Traces_path, animal + '_' + session + '_traces.csv')
-        self.all_cells = None
-        self.accepted_cells = None
-        self.rejected_cells = None
+        self.rejected_traces = None
+
         
     def read_inscopix(self):
         '''
