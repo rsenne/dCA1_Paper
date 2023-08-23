@@ -5,7 +5,7 @@ import scipy.stats as stats
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import os 
-from cell_registration import CellReg
+from .cell_registration import CellReg
 __all__ = ["InscopixProcessing"]
 
 #%%
@@ -31,7 +31,6 @@ class InscopixProcessing():
         self.accepted_traces = None
         self.rejected_traces = None
 
-        
     def read_inscopix(self):
         '''
         Reads Inscopix trace csv file. 
@@ -58,10 +57,9 @@ class InscopixProcessing():
         '''
         cell_inds: indices of which cell rois to get
         returns: self.traces: N x T array of cell activity 
+
         '''
-        try:
-            getattr(self,"all_traces")
-        except AttributeError:
+        if self.all_traces is None:
             self.read_inscopix()
 
         if cell_inds is not None:
@@ -71,15 +69,18 @@ class InscopixProcessing():
     
     def load_registration_table(self,filter_accepted=True,session_subset=None):
         '''
-        session_subset: (optional) list, session indices (i.e. 0 for fc, 1 for ext1/gen1 etc)
+        session_subset: (optional) list, session indices (i.e. 0 for fc, 1 for ext1/gen1 for animal with all 5 sessions etc)
         to do filter accepted
         '''
         if session_subset is not None:
-            table = CellReg(self.animal,'FOV1').load_registration_table()
+            table = CellReg(self.animal,'FOV1',N_sessions=len(session_subset),session_inds=session_subset).load_registration_table()
         else:
-            table = CellReg(self.animal,'FOV1',N_sessions=session_subset).load_registration_table()
+            table = CellReg(self.animal,'FOV1').load_registration_table()
 
-        return table
+        if filter_accepted:
+            pass
+        else:
+            return table
 
     def classify_cells(self):
         pass

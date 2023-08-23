@@ -10,6 +10,7 @@ from plotly.subplots import make_subplots
 from pygments.lexers import go
 from skimage.transform import warp, AffineTransform
 from scipy.io import savemat,loadmat
+import warnings
 
 __all__ = ["CellReg"]
 
@@ -19,8 +20,8 @@ class CellReg:
         animal: string, animal id (ex 'astro3')
         fov: string 'FOV1'
         N_sessions: int, number of sessions
-        session_inds: list: indices of which sessions to pull; 
-                    use if selecting a subset of sessions. N_Sessions must be len(session_inds)
+        session_inds: list: indices of which sessions to pull, use if selecting a subset of sessions. 
+                            N_Sessions must be len(session_inds)
         '''
         # self.base_directory = filedialog.askdirectory(title='Choose Experiment Directory')
         # self.metadata_file = filedialog.askopenfilename(title='Choose metadata csv file')
@@ -45,9 +46,9 @@ class CellReg:
                 raise AttributeError("self.N_sessions not equal to number of subsetted sessions")
             self.sessions = [self.sessions[ind] for ind in session_inds]
             self.session_inds=session_inds
+            
             print('only sessions: ')
-            for session in self.sessions:
-                print(session)
+            print(self.sessions)
 
 ######### footprint functions  ###########
     def load_registration_table(self):
@@ -55,10 +56,25 @@ class CellReg:
         Loads in final output cell_to_index table after final manual evaluation.
         '''
         path = os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,self.animal+'_cell_reg.csv')
-        if self.session_inds is None:
-            self.registration_table = pd.read_csv(path,header=None).iloc[:,0:5].astype(int)
+        
+        df = pd.read_csv(path,header=None)
+        df.fillna(-1000,inplace=True)
+
+        if self.session_inds is not None:
+            print('Loading in registration table for only: ')
+            print(self.sessions)
+            try:
+                self.registration_table = df.iloc[:,self.session_inds].astype(int)
+            except IndexError:
+                print('N sessions exceeds sessions in CellReg output csv. Loading in original CellReg output table.')
+                self.registration_table = df.iloc[:,0:self.N_sessions].astype(int)
         else:
-            self.registration_table = pd.read_csv(path,header=None).iloc[:,self.session_inds].astype(int)
+            self.registration_table = df.iloc[:,0:self.N_sessions].astype(int)
+
+        if self.registration_table.shape[1]!=self.N_sessions:
+            print("Warning: only "+str(self.registration_table.shape[1])+ " sessions found in CellReg output csv: ")
+            print(path)
+
         return self.registration_table
 
     def load_footprints_3D(self,select_sessions=False,affine_shifted=False):
