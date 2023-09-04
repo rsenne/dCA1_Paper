@@ -10,7 +10,7 @@ __all__ = ["InscopixProcessing"]
 
 #%%
 class InscopixProcessing():
-    def __init__(self, session, animal, data_directory):
+    def __init__(self,animal,session, data_directory):
         '''
         animal: string, must match in all filenames
         session: string, must match according to mouse group + filenames (i.e. 'fc','ext1','gen1')

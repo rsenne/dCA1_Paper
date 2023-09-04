@@ -10,7 +10,7 @@ animal = 'astro5'
 ### Examples###
 ## grab cells from one day, accepted indices only
 session= 'fc'
-isx = InscopixProcessing(session,animal,data_directory=data_dir)
+isx = InscopixProcessing(animal,session,data_directory=data_dir)
 isx.read_inscopix()
 traces=isx.get_traces(cell_inds=isx.accepted_inds)
 
