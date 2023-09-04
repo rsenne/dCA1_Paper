@@ -164,7 +164,7 @@ class CellReg:
         footprints[footprints > 0] = 1
         return footprints
     
-    def get_reg_ind(self,isx_accepted=False):
+    def get_reg_ind(self):
         '''
         Get table of registered indices from CellReg from all sessions
         :param animal: animal name, str
@@ -178,19 +178,18 @@ class CellReg:
                                 Lookup table of registered cells from each session.
 
         '''
-        if isx_accepted==False:
-            info = pd.read_csv(self.metadata_file)
-            # First get cell registration indices from CellReg output file & convert to pythonic indexing
-            # each column is a session, each row is a cell. each entry is that cell's index in that session. if cell was absent its entry is -1
-            reg_path = os.path.join(self.base_directory, 'CellReg' + os.path.sep + self.animal + '_' + self.FOV + os.path.sep)
-            reg_file = [os.path.join(reg_path, f) for f in os.listdir(reg_path) if 'cellRegistered' in f]
-            file = h5py.File(reg_file[-1], 'r') # chooses the last cellreg output file in the directory, make sure theres only 1 present!
-            group = file.get('cell_registered_struct')
-            dset = group.get('cell_to_index_map')
-            reg_ind = dset[()] - 1  # converting to python indexing
-            reg_ind = reg_ind.T
-            self.reg_ind = reg_ind.astype('int')
-            print(str(reg_ind.shape[0]) + ' Unique cells detected in registration')  # how many cells in total detected
+        info = pd.read_csv(self.metadata_file)
+        # First get cell registration indices from CellReg output file & convert to pythonic indexing
+        # each column is a session, each row is a cell. each entry is that cell's index in that session. if cell was absent its entry is -1
+        reg_path = os.path.join(self.base_directory, 'CellReg' + os.path.sep + self.animal + '_' + self.FOV + os.path.sep)
+        reg_file = [os.path.join(reg_path, f) for f in os.listdir(reg_path) if 'cellRegistered' in f]
+        file = h5py.File(reg_file[-1], 'r') # chooses the last cellreg output file in the directory, make sure theres only 1 present!
+        group = file.get('cell_registered_struct')
+        dset = group.get('cell_to_index_map')
+        reg_ind = dset[()] - 1  # converting to python indexing
+        reg_ind = reg_ind.T
+        self.reg_ind = reg_ind.astype('int')
+        print(str(reg_ind.shape[0]) + ' Unique cells detected in registration')  # how many cells in total detected
 
         return self.reg_ind
 
