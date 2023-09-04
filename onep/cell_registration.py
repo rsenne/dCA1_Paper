@@ -58,7 +58,7 @@ class CellReg:
         path = os.path.join(self.base_directory,'CellReg',self.animal+'_'+self.FOV,self.animal+'_cell_reg.csv')
         
         df = pd.read_csv(path,header=None)
-        df.fillna(-1000,inplace=True)
+        df.fillna(-1000,inplace=True) # fill those cells that weren't checked for other days with index -1000
 
         if self.session_inds is not None:
             print('Loading in registration table for only: ')
@@ -74,6 +74,9 @@ class CellReg:
         if self.registration_table.shape[1]!=self.N_sessions:
             print("Warning: only "+str(self.registration_table.shape[1])+ " sessions found in CellReg output csv: ")
             print(path)
+
+        #drop rows where all cells are -1000 unchecked - for grabbing certain sessions only
+        self.registration_table=self.registration_table.iloc[~(self.registration_table==-1000).all(axis='columns').values]
 
         return self.registration_table
 

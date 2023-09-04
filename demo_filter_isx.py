@@ -18,7 +18,7 @@ traces=isx.get_traces(cell_inds=isx.accepted_inds)
 reg1 = CellReg(animal,fov='FOV1',N_sessions=5,session_inds=None)
 reg_ind1 = reg1.load_registration_table()
 #%%
-reg = CellReg(animal,fov='FOV1',N_sessions=2,sreession_inds=[2,3])
+reg = CellReg(animal,fov='FOV1',N_sessions=2,session_inds=[2,3])
 reg_ind = reg.load_registration_table()
 
 # %%
