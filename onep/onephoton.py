@@ -77,10 +77,7 @@ class InscopixProcessing():
         else:
             table = CellReg(self.animal,'FOV1').load_registration_table()
 
-        if filter_accepted:
-            pass
-        else:
-            return table
+
 
     def classify_cells(self):
         pass
