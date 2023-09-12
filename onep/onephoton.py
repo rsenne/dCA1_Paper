@@ -10,7 +10,7 @@ __all__ = ["InscopixProcessing"]
 
 #%%
 class InscopixProcessing():
-    def __init__(self,animal,session, data_directory):
+    def __init__(self, animal, session, data_directory):
         '''
         animal: string, must match in all filenames
         session: string, must match according to mouse group + filenames (i.e. 'fc','ext1','gen1')
@@ -19,8 +19,8 @@ class InscopixProcessing():
         self.CellReg_path = os.path.join(data_directory,'CellReg')
         self.Traces_path = os.path.join(data_directory,'Cell_Traces',animal+'_traces')
         
-        if not os.path.exists(self.CellReg_path):
-            raise FileNotFoundError("Couldnt find CellReg subfolder, check data directory & subfolders")
+        # if not os.path.exists(self.CellReg_path):
+        #     raise FileNotFoundError("Couldnt find CellReg subfolder, check data directory & subfolders")
         if not os.path.exists(self.Traces_path):
             raise FileNotFoundError("Couldnt find Traces subfolder, check data directory & subfolders")
         
@@ -52,6 +52,9 @@ class InscopixProcessing():
         self.accepted_df= pd.read_csv(self.filename,header=None,index_col=0).iloc[1].map({' accepted':True,' rejected':False}).rename('cell_status').reset_index(drop=True).reset_index()
         self.accepted_inds=self.accepted_df['index'].loc[self.accepted_df['cell_status']==True].values
         self.rejected_inds=self.accepted_df['index'].loc[self.accepted_df['cell_status']==False].values
+
+    def correct_photobleach():
+        pass
         
     def get_traces(self,cell_inds=None):
         '''
