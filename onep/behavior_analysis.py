@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 import pykalman
 
-__all__ = ["calculate_binned_freezing", "create_freeze_vector", "find_onset_offset", "initialize_matrices", "read_dlc_file", "kalman_filter", "calculate_centroids", "process_dlc"]
+__all__ = ["calculate_binned_freezing", "create_freeze_vector", "find_onset_offset", "initialize_matrices",
+           "read_dlc_file", "kalman_filter", "calculate_centroids", "process_dlc"]
 
 
 def calculate_binned_freezing(anymaze_fp,
@@ -46,15 +47,17 @@ def find_onset_offset(freeze_vector):
     offsets = np.where(diff == 1)[0] - 1  # subtracting 1 to get the correct index
     return list(onsets), list(offsets)
 
+
 def read_dlc_file(dlc_file):
     return pd.read_csv(dlc_file, header=[1, 2], index_col=[0])
+
 
 def initialize_matrices(dt):
     """Initializes and returns the Kalman filter matrices."""
     # State transition matrix
     A = np.array([
-        [1, 0, dt, 0, 0.5 * dt**2, 0],
-        [0, 1, 0, dt, 0, 0.5 * dt**2],
+        [1, 0, dt, 0, 0.5 * dt ** 2, 0],
+        [0, 1, 0, dt, 0, 0.5 * dt ** 2],
         [0, 0, 1, 0, dt, 0],
         [0, 0, 0, 1, 0, dt],
         [0, 0, 0, 0, 1, 0],
@@ -69,11 +72,12 @@ def initialize_matrices(dt):
 
     # Process noise covariance
     Q = np.eye(6)
-    Q[4, 4], Q[5, 5] = dt**2, dt**2  # This is an assumption. Adjust based on system knowledge.
+    Q[4, 4], Q[5, 5] = dt ** 2, dt ** 2  # This is an assumption. Adjust based on system knowledge.
 
     return A, H, Q
 
-def kalman_filter(x_data, y_data, dt=(1/15)):
+
+def kalman_filter(x_data, y_data, dt=(1 / 15)):
     """Kalman filter for 2D tracking with explicit acceleration state.
 
     Args:
@@ -106,14 +110,17 @@ def kalman_filter(x_data, y_data, dt=(1/15)):
 
     return kalman_means, kalman_covs
 
+
 def calculate_centroids(dlc_df):
     dlc_df.loc[:, ('centroid', 'x')] = dlc_df.xs('x', axis=1, level=1).mean(axis=1)
     dlc_df.loc[:, ('centroid', 'y')] = dlc_df.xs('y', axis=1, level=1).mean(axis=1)
     return dlc_df
 
+
 def filter_predictions(dlc_df, bparts=None, fps=None):
     if bparts is None:
-        bparts = bparts=["snout", 'ear_r', 'ear_l', 'shoulder_r', 'shoulder_l', 'spine_top', 'spine_mid', 'spine_bott', 'hip_l', 'hip_r', 'tail_base', 'tail_end', 'centroid']
+        bparts = bparts = ["snout", 'ear_r', 'ear_l', 'shoulder_r', 'shoulder_l', 'spine_top', 'spine_mid',
+                           'spine_bott', 'hip_l', 'hip_r', 'tail_base', 'tail_end', 'centroid']
     if fps is None:
         fps = 30
 
@@ -122,7 +129,7 @@ def filter_predictions(dlc_df, bparts=None, fps=None):
     kalman_dict = {}
     for bpart in bparts:
         k_means, _ = kalman_filter(dlc_df.loc[:, (bpart, 'x')], dlc_df.loc[:, (bpart, 'y')],
-                                                 dt=dt)
+                                   dt=dt)
         kalman_dict[bpart] = {
             'x': k_means[:, 0],
             'y': k_means[:, 1],
@@ -140,8 +147,8 @@ def filter_predictions(dlc_df, bparts=None, fps=None):
     df = pd.DataFrame.from_dict(reformed_dict)
     return df
 
+
 def process_dlc(dlc_df, bparts=None, fps=None):
     dlc_df = calculate_centroids(dlc_df)
     dlc_df = filter_predictions(dlc_df, bparts=bparts, fps=fps)
     return dlc_df
-
