@@ -6,34 +6,50 @@ __all__ = ["calculate_binned_freezing", "create_freeze_vector", "find_onset_offs
            "read_dlc_file", "kalman_filter", "calculate_centroids", "process_dlc"]
 
 
-def calculate_binned_freezing(anymaze_fp,
-                              bin_duration=120,
+def calculate_binned_freezing(anymaze_df,
+                              bin_duration=60,
                               start=None, end=None,
                               offset=0,
-                              time_format='%H:%M:%S.%f',
                               time_col='Time',
                               behavior_col='Freezing'):
-    anymaze_df = pd.read_csv(anymaze_fp)
-    # convert to datetimes and subtract any offset
-    anymaze_df[time_col] = pd.to_datetime(anymaze_df.Time, format=time_format) - pd.Timedelta(seconds=offset)
-    anymaze_df['duration'] = anymaze_df[time_col].diff().dt.total_seconds()
+    def __convert_time_to_seconds__(time_series):
+        # Split the time and then convert to seconds
+        time_data = time_series.str.split(':').tolist()
+        return [int(x[0]) * 3600 + int(x[1]) * 60 + float(x[2]) for x in time_data]
 
-    # If custom_start or custom_end is None, use the first or last timestamp respectively.
-    start = pd.to_datetime(start, format=time_format) if start is not None else anymaze_df[time_col].iloc[0]
-    end = pd.to_datetime(end, format=time_format) if end is not None else anymaze_df[time_col].iloc[-1]
+    anymaze_df = pd.read_csv(anymaze_df)
+    anymaze_df.Time = __convert_time_to_seconds__(anymaze_df.Time)
 
-    anymaze_df['bin'] = pd.cut(anymaze_df[time_col], pd.date_range(start=start,
-                                                                   end=end,
-                                                                   freq=f'{bin_duration}s'))
-    result = anymaze_df.groupby(['bin', behavior_col])['duration'].sum().reset_index()
-    return result[result[behavior_col] == 1]
+    # Subtract the offset directly
+    anymaze_df[time_col] = anymaze_df[time_col].astype(float) - offset
+
+    # Calculate the duration between rows
+    anymaze_df['duration'] = anymaze_df[time_col].diff().fillna(0)
+
+    # Set default start and end times if not specified
+    start = start if start is not None else anymaze_df[time_col].iloc[0]
+    end = end if end is not None else anymaze_df[time_col].iloc[-1]
+
+    bins = np.arange(start, end + bin_duration, bin_duration)  # create bins
+    anymaze_df['bin'] = pd.cut(anymaze_df[time_col], bins, include_lowest=True, right=False)
+
+    # Filter rows where the behavior is freezing (i.e., behavior_col is 1)
+    freezing_data = anymaze_df[anymaze_df[behavior_col] == 0]
+
+    # Group by the bins and sum the duration
+    freezing_durations = freezing_data.groupby('bin')['duration'].sum()
+
+    # Convert to percentages
+    freezing_percentages = (freezing_durations / bin_duration) * 100
+
+    return pd.DataFrame({'bin': freezing_durations.index, 'freezing_percentage': freezing_percentages}).reset_index(
+        drop=True), anymaze_df
 
 
-def create_freeze_vector(anymaze_fp, timestamps, time_format='%H:%M:%S.%f', time_col='Time', behavior_col='Freezing'):
-    anymaze_df = pd.read_csv(anymaze_fp)
+def create_freeze_vector(anymaze_fp, timestamps, time_col='Time', behavior_col='Freezing'):
     binary_vector = np.zeros(len(timestamps), dtype=int)
     for i, ts in enumerate(timestamps):
-        state = anymaze_df.loc[anymaze_df[time_col] <= ts, behavior_col].iloc[-1]
+        state = anymaze_fp.loc[anymaze_fp[time_col] <= ts, behavior_col].iloc[-1]
         # Get the last label before the current timestamp
         binary_vector[i] = state
     return binary_vector
