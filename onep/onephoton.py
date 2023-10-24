@@ -1,6 +1,6 @@
 # %%
 import numpy as np
-import jax
+#import jax
 import pandas as pd
 import scipy.stats as stats
 import statsmodels.api as sm
@@ -9,9 +9,10 @@ import pykalman
 from scipy.sparse.linalg import spsolve
 from scipy import sparse
 from joblib import Parallel, delayed
+from dlc_analyis import dlcResults
 
 import os
-from .cell_registration import CellReg
+from cell_registration import CellReg
 
 __all__ = ["InscopixProcessing", "dCA1Group"]
 
@@ -24,6 +25,7 @@ class InscopixProcessing():
         session: string, must match according to mouse group + filenames (i.e. 'fc','ext1','gen1')
         data_directory: home directory for experiment; contains subfolders for Cell_Traces, CellReg
         '''
+        self.base_dir = data_directory
         self.rejected_inds = None
         self.accepted_inds = None
         self.accepted_df = None
@@ -101,6 +103,7 @@ class InscopixProcessing():
         for col, new_data in zip(self.accepted_traces.columns, results):
             self.accepted_traces.loc[:, col] = new_data
     @staticmethod
+    
     def kalman_smoother(signal):
         """_summary_
 
@@ -144,28 +147,44 @@ class InscopixProcessing():
             return self.all_traces.values.T[cell_inds, :]
         else:
             return self.all_traces.values.T
-
-    def load_registration_table(self, filter_accepted=True, session_subset=None):
-        """
-        session_subset: (optional) list, session indices (i.e. 0 for fc, 1 for ext1/gen1 for animal with all 5 sessions etc)
-        to do filter accepted
-        """
-        if session_subset is not None:
-            table = CellReg(self.animal, 'FOV1', N_sessions=len(session_subset),
-                            session_inds=session_subset).load_registration_table()
-        else:
-            table = CellReg(self.animal, 'FOV1').load_registration_table()
-
+    
     def classify_cells(self):
         pass
 
     def event_triggered_average(self):
         pass
 
+    # def load_registration_table(self, filter_accepted=True, session_subset=None):
+    #     """
+    #     session_subset: (optional) list, session indices (i.e. 0 for fc, 1 for ext1/gen1 for animal with all 5 sessions etc)
+    #     to do filter accepted - maybe move this outside of the ISX class ...
+    #     """
+    #     if session_subset is not None:
+    #         table = CellReg(self.animal, 'FOV1', N_sessions=len(session_subset),
+    #                             session_inds=session_subset).load_registration_table()
+    #     else:
+    #         table = CellReg(self.animal, 'FOV1').load_registration_table()
 
+    #     if filter_accepted:
+    #         if self.accepted_inds is None:
+    #             self.read_inscopix()
+
+    def get_DLC_data(self,data = 'freezing'):
+        DLC_path = os.path.join(os.path.join(self.base_dir,'Analysis','DLC'))
+        ani_id = self.animal[-1]
+        DLC_file = os.path.join(DLC_path,'Astro_'+ani_id+'_'+self.session.upper()+'_VideoDLC_resnet50_OLMMay26shuffle1_300000.csv')
+        return DLC_file
+    
+    def kalman_filter_DLC(self,bparts,fps):
+        dlc_file  = self.get_DLC_data()
+        dlc_ = dlcResults(dlc_file)
+        return dlc_.process_dlc(bparts, fps)
+    
 class dCA1Group:
     def __init__(self, *args):
         self.animals = {arg.animal: arg for arg in args}
+        for ani, obj in self.animals.items():
+            obj.read_inscopix()
         return
 
     def preprocess(self):
@@ -182,11 +201,5 @@ class dCA1Group:
         """
         list_of_accepted = [ani.accepted_traces for ani in self.animals.values()]
         return pd.concat(list_of_accepted, ignore_index=True, axis=1)
-
-
-
-
-
-
 
 # %%
