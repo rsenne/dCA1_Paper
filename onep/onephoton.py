@@ -32,8 +32,8 @@ class InscopixProcessing():
         self.CellReg_path = os.path.join(data_directory, 'CellReg')
         self.Traces_path = os.path.join(data_directory, 'Cell_Traces', animal + '_traces')
 
-        # if not os.path.exists(self.CellReg_path):
-        #     raise FileNotFoundError("Couldnt find CellReg subfolder, check data directory & subfolders")
+        if not os.path.exists(self.CellReg_path):
+            raise FileNotFoundError("Couldnt find CellReg subfolder, check data directory & subfolders")
         if not os.path.exists(self.Traces_path):
             raise FileNotFoundError("Couldn't find Traces subfolder, check data directory & subfolders")
 
@@ -148,6 +148,30 @@ class InscopixProcessing():
         else:
             return self.all_traces.values.T
     
+    
+    def load_registration_table(self,filter_accepted=True,session_subset=None):
+        '''
+        session_subset: (optional) list, session indices (i.e. 0 for fc, 1 for ext1/gen1 for animal with all 5 sessions etc)
+        to do filter accepted
+        '''
+        if session_subset is not None:
+            table = CellReg(self.animal,'FOV1',N_sessions=len(session_subset),session_inds=session_subset).load_registration_table()
+        else:
+            table = CellReg(self.animal,'FOV1').load_registration_table()
+
+    def get_DLC_data(self,data = 'freezing'):
+
+        DLC_path = os.path.join(os.path.join(self.base_dir,'Analysis','DLC'))
+        ani_id = self.animal[-1]
+        DLC_file = os.path.join(DLC_path,'Astro_'+ani_id+'_'+self.session.upper()+'_VideoDLC_resnet50_OLMMay26shuffle1_300000.csv')
+
+        return DLC_file
+    
+    def kalman_filter_DLC(self,bparts,fps):
+        dlc_file  = self.get_DLC_data()
+        dlc_ = dlcResults(dlc_file)
+        return dlc_.process_dlc(bparts, fps)
+
     def classify_cells(self):
         pass
 
@@ -169,17 +193,7 @@ class InscopixProcessing():
     #         if self.accepted_inds is None:
     #             self.read_inscopix()
 
-    def get_DLC_data(self,data = 'freezing'):
-        DLC_path = os.path.join(os.path.join(self.base_dir,'Analysis','DLC'))
-        ani_id = self.animal[-1]
-        DLC_file = os.path.join(DLC_path,'Astro_'+ani_id+'_'+self.session.upper()+'_VideoDLC_resnet50_OLMMay26shuffle1_300000.csv')
-        return DLC_file
-    
-    def kalman_filter_DLC(self,bparts,fps):
-        dlc_file  = self.get_DLC_data()
-        dlc_ = dlcResults(dlc_file)
-        return dlc_.process_dlc(bparts, fps)
-    
+
 class dCA1Group:
     def __init__(self, *args):
         self.animals = {arg.animal: arg for arg in args}
