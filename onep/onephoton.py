@@ -12,6 +12,7 @@ from joblib import Parallel, delayed
 
 import os
 from .cell_registration import CellReg
+import onep.behavior_analysis as behavior_analysis
 
 __all__ = ["InscopixProcessing", "dCA1Group"]
 
@@ -29,6 +30,8 @@ class InscopixProcessing():
         self.accepted_df = None
         self.CellReg_path = os.path.join(data_directory, 'CellReg')
         self.Traces_path = os.path.join(data_directory, 'Cell_Traces', animal + '_traces')
+        self.DLC_path = os.path.join(data_directory, 'DLC', animal)
+        self.Anymaze_path = os.path.join(data_directory, 'Anymaze', animal)
 
         # if not os.path.exists(self.CellReg_path):
         #     raise FileNotFoundError("Couldnt find CellReg subfolder, check data directory & subfolders")
@@ -41,8 +44,13 @@ class InscopixProcessing():
         self.all_traces = None
         self.accepted_traces = None
         self.rejected_traces = None
-        self.DLC = None
-        self.anymaze = None
+        self.read_inscopix()
+        self.Timestamps = self.accepted_traces.index
+        self.DLC = os.path.join(self.DLC_path, animal + "_" + session + "_DLC.csv")
+        self.anymaze = os.path.join(self.Anymaze_path, animal + "_" + session + "_behavior.csv")
+        self.percent_freezing, self.anymaze_df = behavior_analysis.calculate_binned_freezing(self.anymaze)
+        self.freeze_vector = behavior_analysis.create_freeze_vector(self.anymaze_df, timestamps=self.Timestamps)
+        self.dlc_df = behavior_analysis.process_dlc(behavior_analysis.read_dlc_file(self.DLC))
 
     def read_inscopix(self):
         """
