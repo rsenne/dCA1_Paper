@@ -9,7 +9,7 @@ import pykalman
 from scipy.sparse.linalg import spsolve
 from scipy import sparse
 from joblib import Parallel, delayed
-from dlc_analysis import dlcResults
+from .dlc_analysis import dlcResults
 import os
 from .cell_registration import CellReg
 from tqdm import tqdm
