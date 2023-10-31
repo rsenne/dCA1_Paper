@@ -1,13 +1,14 @@
 #%%
 from onephoton import dCA1Group,InscopixProcessing
 import matplotlib.pyplot as plt
-
+import os 
 # A_ani = ['astro3','astro4','astro5','astro6']
 # B_ani = 'astro7','astro8','astro9','astro10'
-A_sessions = 'fc','recall','ext1','ext2','ext3'
-B_sessions = 'fc','gen1','gen2','gen3','gen4'
 
+#%%
 def main():
+    A_sessions = ['ext1','ext2','ext3']
+    B_sessions = ['gen2','gen3','gen4']
     data_dir = '/Users/amonast/Desktop/dCA1_astro'
     for sessions in zip(A_sessions,B_sessions):
         a = sessions[0]
@@ -17,11 +18,17 @@ def main():
                         InscopixProcessing('astro4',a,data_dir),
                         InscopixProcessing('astro5',a,data_dir),
                         InscopixProcessing('astro6',a,data_dir))
+        grpA.preprocess()
         
-        grpB = dCA1Group(InscopixProcessing('astro7','fc',data_dir),
-                        InscopixProcessing('astro8','fc',data_dir),
-                        InscopixProcessing('astro9','fc',data_dir),
-                        InscopixProcessing('astro10','fc',data_dir))
+        grpB = dCA1Group(InscopixProcessing('astro7',b,data_dir),
+                        InscopixProcessing('astro8',b,data_dir),
+                        InscopixProcessing('astro9',b,data_dir),
+                        InscopixProcessing('astro10',b,data_dir))
+        grpB.preprocess()
+
+        grpA.save_processed_traces(savepath=os.path.join(data_dir,'Cell_Traces'))
+        grpB.save_processed_traces(savepath=os.path.join(data_dir,'Cell_Traces'))
+
 ##### example data
 #%%
 

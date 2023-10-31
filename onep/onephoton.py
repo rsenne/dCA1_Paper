@@ -9,11 +9,10 @@ import pykalman
 from scipy.sparse.linalg import spsolve
 from scipy import sparse
 from joblib import Parallel, delayed
-from dlc_analyis import dlcResults
-
+from dlc_analysis import dlcResults
 import os
 from cell_registration import CellReg
-
+from tqdm import tqdm
 __all__ = ["InscopixProcessing", "dCA1Group"]
 
 
@@ -193,10 +192,25 @@ class InscopixProcessing():
     #         if self.accepted_inds is None:
     #             self.read_inscopix()
 
+def load_registration_table(animal,session_inds,filter_accepted=True):
+    cell_reg = CellReg(animal,N_sessions=len(session_inds),session_inds=session_inds)
+    table = cell_reg.load_registration_table()
+
+    if filter_accepted:
+        Isx_list = [InscopixProcessing(cell_reg.animal,sess,cell_reg.base_directory) for sess in cell_reg.sessions]
+
+        for i,ix in zip(table.columns.values,Isx_list):
+            ix.read_inscopix()
+            reg_cells = table.drop(cell_reg.registration_table.loc[~table[i].isin(ix.accepted_inds)].index)
+    
+        return reg_cells.reset_index(drop=True)
+    else:
+        return table
 
 class dCA1Group:
     def __init__(self, *args):
         self.animals = {arg.animal: arg for arg in args}
+        self.sessions = [arg.session  for arg in args]
         for ani, obj in self.animals.items():
             obj.read_inscopix()
         return
@@ -205,7 +219,8 @@ class dCA1Group:
         """
         Does baseline correction and Kalman Smoothing for all cells in all the animals of the group.
         """
-        for ani, obj in self.animals.items():
+        print('preprocessing: detrending and smoothing')
+        for ani, obj in tqdm(self.animals.items()):
             obj.apply_detrend()
             obj.apply_smoother()
 
@@ -215,5 +230,13 @@ class dCA1Group:
         """
         list_of_accepted = [ani.accepted_traces for ani in self.animals.values()]
         return pd.concat(list_of_accepted, ignore_index=True, axis=1)
+    
+    def save_processed_traces(self,savepath):
+        list_of_accepted = [ani.accepted_traces for ani in self.animals.values()]
+        print('saving preprocessed csvs')
+        for session,ani,traces in tqdm(zip(self.sessions,self.animals,list_of_accepted)):
+            traces.to_csv(os.path.join(savepath,ani+'_traces',ani+'_'+session+'_traces_preprocess.csv'))
+
+
 
 # %%
