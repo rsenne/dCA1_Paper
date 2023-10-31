@@ -12,7 +12,8 @@ from joblib import Parallel, delayed
 from dlc_analysis import dlcResults
 import os
 from .cell_registration import CellReg
-from tqdm import tqdmimport onep.behavior_analysis as behavior_analysis
+from tqdm import tqdm
+import onep.behavior_analysis as behavior_analysis
 
 __all__ = ["InscopixProcessing", "dCA1Group"]
 
