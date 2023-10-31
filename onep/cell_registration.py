@@ -10,7 +10,6 @@ from plotly.subplots import make_subplots
 from pygments.lexers import go
 from skimage.transform import warp, AffineTransform
 from scipy.io import savemat,loadmat
-from onephoton import InscopixProcessing
 import warnings
 
 __all__ = ["CellReg"]
@@ -79,15 +78,6 @@ class CellReg:
         #drop rows where all cells are -1000 unchecked - for grabbing certain sessions only
         self.registration_table=self.registration_table.iloc[~(self.registration_table==-1000).all(axis='columns').values]
 
-        if filter_accepted:
-            if self.session_inds is not None:
-                sessions = self.sessions[self.session_inds]
-            Isx_list = [InscopixProcessing(self.animal,sess,self.base_directory) for sess in sessions]
-            for ix in Isx_list:
-                ix.read_inscopix()
-                accepted_ind = ix.accepted_inds
-                
-                self.registration_table.drop
         return self.registration_table
 
     def load_footprints_3D(self,select_sessions=False,affine_shifted=False):
