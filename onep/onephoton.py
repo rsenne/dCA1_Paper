@@ -15,7 +15,7 @@ from .cell_registration import CellReg
 from tqdm import tqdm
 import onep.behavior_analysis as behavior_analysis
 
-__all__ = ["InscopixProcessing", "dCA1Group"]
+__all__ = ["InscopixProcessing", "dCA1Group","load_registration_table"]
 
 
 # %%
@@ -48,11 +48,11 @@ class InscopixProcessing():
         self.rejected_traces = None
         self.read_inscopix()
         self.Timestamps = self.accepted_traces.index
-        self.DLC = os.path.join(self.DLC_path, animal + "_" + session + "_DLC.csv")
-        self.anymaze = os.path.join(self.Anymaze_path, animal + "_" + session + "_behavior.csv")
-        self.percent_freezing, self.anymaze_df = behavior_analysis.calculate_binned_freezing(self.anymaze)
-        self.freeze_vector = behavior_analysis.create_freeze_vector(self.anymaze_df, timestamps=self.Timestamps)
-        self.dlc_df = behavior_analysis.process_dlc(behavior_analysis.read_dlc_file(self.DLC))
+        # self.DLC = os.path.join(self.DLC_path, animal + "_" + session + "_DLC.csv")
+        # self.anymaze = os.path.join(self.Anymaze_path, animal + "_" + session + "_behavior.csv")
+        # self.percent_freezing, self.anymaze_df = behavior_analysis.calculate_binned_freezing(self.anymaze)
+        # self.freeze_vector = behavior_analysis.create_freeze_vector(self.anymaze_df, timestamps=self.Timestamps)
+        # self.dlc_df = behavior_analysis.process_dlc(behavior_analysis.read_dlc_file(self.DLC))
 
     def read_inscopix(self):
         """
@@ -74,6 +74,8 @@ class InscopixProcessing():
         # accepted vs rejected cell indices
         self.accepted_df = pd.read_csv(self.filename, header=None, index_col=0).iloc[1].map(
             {' accepted': True, ' rejected': False}).rename('cell_status').reset_index(drop=True).reset_index()
+        cell_ids =  pd.read_csv(self.filename, header=None, index_col=0).iloc[0]
+        self.accepted_df['cell_IDs'] = cell_ids.values
         self.accepted_inds = self.accepted_df['index'].loc[self.accepted_df['cell_status'] == True].values
         self.rejected_inds = self.accepted_df['index'].loc[self.accepted_df['cell_status'] == False].values
 
