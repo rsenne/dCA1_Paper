@@ -39,8 +39,10 @@ class InscopixProcessing():
         self.all_traces = None
         self.accepted_traces = None
         self.rejected_traces = None
+        self.read_inscopix()
         self.DLC = None
         self.anymaze = None
+        self.timestamps = self.accepted_traces.index
 
     def read_inscopix(self):
         """
@@ -153,6 +155,7 @@ class InscopixProcessing():
                             session_inds=session_subset).load_registration_table()
         else:
             table = CellReg(self.animal, 'FOV1').load_registration_table()
+        return table
 
     def classify_cells(self):
         pass

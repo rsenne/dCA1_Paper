@@ -167,9 +167,9 @@ def eta_individual_cells(data, timestamps, events=None, window=10, ax=None, **kw
     plt.xlabel('Time(s)')
 
     if ax is None:
-        return fig, ax, across_eta_
+        return fig, ax, across_eta_, time
     else:
-        return ax, across_eta_,
+        return ax, across_eta_, time
     # How to use:
     # ax, across_eta_ = eta_individual_cells(data=concat_a, timestamps=timestamps_a, events=[[120,180,240,300], ], window=10)
 
@@ -222,9 +222,9 @@ def eta_averaged(data, timestamps, events=None, window=10, ci='bci', sig_duratio
         ax.hlines(y=y_height, xmin=time[start_index], xmax=time[end_index], colors='r')
 
     if ax is None:
-        return fig, ax, across_eta_
+        return fig, ax, across_eta_, time
     else:
-        return ax, across_eta_
+        return ax, across_eta_, time
 
 def eta_individual_cells_ci(data, timestamps, events=None, window=10, ci='tci', sig_duration=8, ax=None, **kwargs):
     # Event-triggered average for all cells plotted individually for data provided
@@ -271,5 +271,5 @@ def eta_individual_cells_ci(data, timestamps, events=None, window=10, ci='tci', 
         end_index = start_index + sig_duration
         ax.hlines(y=y_height, xmin=time[start_index], xmax=time[end_index], colors='r')
 
-    return ax, across_eta_, sig
+    return ax, across_eta_, sig, time
 

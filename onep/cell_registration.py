@@ -28,8 +28,8 @@ class CellReg:
         # self.metadata_file = filedialog.askopenfilename(title='Choose metadata csv file')
         # self.base_directory = r"C:\Users\RamirezLab\Desktop\Rebecca"
         # self.metadata_file = r"C:\Users\RamirezLab\Desktop\Rebecca\Data_info_astro.csv"
-        self.base_directory = "/Users/amonast/Desktop/dCA1_astro"
-        self.metadata_file = "/Users/amonast/Desktop/dCA1_astro/Data_info_astro.csv"
+        self.base_directory = "/Users/suthardr/Desktop/Cell_Traces"
+        self.metadata_file = "/Users/suthardr/Desktop/Cell_Traces/Data_info_astro.csv"
         self.animal = animal
         self.FOV = fov
         self.N_sessions = N_sessions
@@ -52,7 +52,7 @@ class CellReg:
             print(self.sessions)
 
     ######### footprint functions  ###########
-    def load_registration_table(self):
+    def load_registration_table(self, filter_accepted=True):
         '''
         Loads in final output cell_to_index table after final manual evaluation.
         '''
