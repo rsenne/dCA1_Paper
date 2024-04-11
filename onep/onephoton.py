@@ -168,6 +168,21 @@ class InscopixProcessing():
             table = CellReg(self.animal,'FOV1',N_sessions=len(session_subset),session_inds=session_subset).load_registration_table()
         else:
             table = CellReg(self.animal,'FOV1').load_registration_table()
+    
+    def load_footprints(self,filter_accepted=True,session_subset=None):
+        '''
+        session_subset: (optional) list, session indices (i.e. 0 for fc, 1 for ext1/gen1 for animal with all 5 sessions etc)
+        to do filter accepted
+        '''
+        # try:
+        #     from cell_registration import CellReg
+        # except ImportError:
+        #     ImportError('Need CellReg functions from cell_registration.py')
+
+        table = self.load_registration_table(filter_accepted=filter_accepted,session_subset=session_subset)
+        cellreg = CellReg(self.animal,'FOV1',N_sessions = len(session_subset),session_inds=session_subset)
+        foots = cellreg.load_footprints_3D(select_sessions=False,affine_shifted=False)
+        return foots
 
     def get_DLC_data(self,data = 'freezing'):
 
@@ -187,6 +202,7 @@ class InscopixProcessing():
 
     def event_triggered_average(self):
         pass
+
 
     # def load_registration_table(self, filter_accepted=True, session_subset=None):
     #     """
