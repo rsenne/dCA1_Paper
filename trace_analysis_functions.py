@@ -131,26 +131,30 @@ def eta_individual_cells(data, timestamps, events=None, window=10, ax=None, **kw
     # No significance or CI plotted
 
     # Window in seconds times 30 indices per second and half the window period to visualize before
-    number_of_indices = int(window * 1.5 * 7.5)
+    number_of_indices = int(window * 1.5 * 10)
 
     def event_interpolation(data, events_):
-        interp = scipy.interpolate.interp1d(timestamps, data, kind='cubic')
+        interp = scipy.interpolate.interp1d(timestamps, data, kind='cubic', bounds_error=False, fill_value="extrapolate")
         within_eta_ = np.zeros((len(events_), number_of_indices))
         for i, event in enumerate(events_):
             time_period = np.linspace(event - (window / 2), event + window, number_of_indices)
+            time_period = np.clip(time_period, timestamps.min(), timestamps.max())
             within_eta_[i] = interp(time_period)
         return np.average(within_eta_, axis=0)
 
     across_eta_ = np.zeros((len(data), number_of_indices))
 
-    # If there's only one event, repeat it for each curve
-    if len(events) == 1:
+    # If there's only one set of events, repeat it for each curve
+    if events is not None and len(events) == 1:
         events = events * len(data)
 
     for j, curve in enumerate(data):
-        across_eta_[j] = event_interpolation(curve, events[j])
+        if events is not None:
+            across_eta_[j] = event_interpolation(curve, events[j])
+        else:
+            across_eta_[j] = event_interpolation(curve, [timestamps.mean()])  # or handle as needed
 
-    # make a figure
+    # Make a figure
     if ax is None:
         fig, ax = plt.subplots(len(across_eta_), 1, sharex='col', figsize=(4, 60))
 
@@ -170,13 +174,14 @@ def eta_individual_cells(data, timestamps, events=None, window=10, ax=None, **kw
         return fig, ax, across_eta_, time
     else:
         return ax, across_eta_, time
-    # How to use:
-    # ax, across_eta_ = eta_individual_cells(data=concat_a, timestamps=timestamps_a, events=[[120,180,240,300], ], window=10)
+
+# Example usage:
+# ax, across_eta_, time = eta_individual_cells(data=concat_a, timestamps=timestamps_a, events=[[120,180,240,300],], window=10)
 
 def eta_averaged(data, timestamps, events=None, window=10, ci='bci', sig_duration=8, ax=None, **kwargs):
     # Event-triggered average for all cells plotted together for data provided
     # window in seconds times 30 indices per second and half the window period to visualize before
-    number_of_indices = int(window * 1.5 * 7.5)
+    number_of_indices = int(window * 1.5 * 10)
 
     def event_interpolation(data, events_):
         interp = scipy.interpolate.interp1d(timestamps, data, kind='cubic')
@@ -236,7 +241,7 @@ def eta_individual_cells_ci(data, timestamps, events=None, window=10, ci='tci', 
     interp = scipy.interpolate.interp1d(timestamps, data, kind='cubic')
     within_eta_ = np.zeros((len(events), number_of_indices))
     for i, event_ in enumerate(events):
-        time_period = np.linspace(event_ - (window / 2), event_ + window, number_of_indices)
+        time_period = np.linspace(event_ - (window / 14), event_ + window, number_of_indices)
         within_eta_[i] = interp(time_period)
 
     across_eta_ = np.average(within_eta_, axis=0)
@@ -249,7 +254,7 @@ def eta_individual_cells_ci(data, timestamps, events=None, window=10, ci='tci', 
     else:
         raise ValueError("Confidence interval options are 'tci' or 'bci'")
 
-    time = np.linspace(-window / 2, window, number_of_indices)
+    time = np.linspace(-window / 14, window, number_of_indices)
 
     # make a figure
     if ax is None:

@@ -13,64 +13,64 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 from scipy.stats import zscore
 
-# mpl.use('TkAgg')
+mpl.use('TkAgg')
 #%%
 ################# Fig 1C ################# representative traces
-fc_astro = pd.read_csv('/Users/amonast/Desktop/dCA1_astro/Cell_Traces/astro5_traces/astro5_ext1_traces.csv')
+fc_astro = pd.read_csv('/Users/suthardr/Desktop/Cell_Traces/astro7_traces/astro7_gen1_traces.csv')
 fc_astro_accepted = fc_astro.columns[fc_astro.isin([' accepted']).any()]
 fc_astro = fc_astro[fc_astro_accepted]
 traces = fc_astro.iloc[1:,:].values.astype(float)
 zscored = zscore(traces,axis=0)
-n=15
+n=25
 fig, axs = plt.subplots(n, 1, sharex='col', figsize=(10, 8))
 for i in range(n):
     axs[i].plot(zscored[:4000,i], color='k')
     axs[i].axis('off')
 
-fig.savefig('/Users/amonast/Desktop/dCA1_astro/Figures/astro5_recall_rep_fig1.png')
+fig.savefig('/Users/suthardr/Desktop/astro7_gen1_rep_fig1.png')
 #%%
 ########## Figure 1E #############
 ## Number of astrocytes active ##
 
-n_sessions =5
+n_sessions =2
 DF = pd.DataFrame()
-for ani in ['astro3','astro4','astro5','astro6','astro7','astro8','astro9','astro10']:
+for ani in ['astro3','astro4','astro5','astro6','astro7','astro8','astro9']:
     astro = cell_registration.CellReg(ani,'FOV1',n_sessions)
     footprints = astro.load_footprints_3D(affine_shifted=False)
     N_cells = [footprints[i].shape[0] for i in range(len(footprints))]
     series = pd.Series(N_cells)
 
-    data = {'# Cells':series,'Animal':[ani]*n_sessions,'Group':[astro.group]*n_sessions,'Day':[0,1,2,3,4]}
+    data = {'# Cells':series,'Animal':[ani]*n_sessions,'Group':[astro.group]*n_sessions,'Day':[0,1]}
     df = pd.DataFrame(data=data)
     DF = pd.concat([DF,df])
 
-DF['Group_name']=DF['Group'].map({'EXT': 'Ext', 'GEN': 'Neutral'})
+DF['Group_name']=DF['Group'].map({'EXT': 'CxtA', 'GEN': 'CxtB'})
 # 
 # ALL CELLS each session
 font = {'family' : 'Arial',
-        'weight' : 'bold',
-        'size'   : 10}
+        'weight' : 'normal',
+        'size'   : 12}
 mpl.rc('font',**font)
 #%%
 plt.figure(figsize=(3,4))
-#sb.lineplot(data=DF,x='Day',y='# Cells',hue='Group',err_style='bars')
-sb.pointplot(data=DF,x='Day',y='# Cells',hue='Group_name',errorbar='se',palette='Set2',hue_order=['Neutral','Ext'])
-plt.xlabel('Day',weight='bold',size=15)
-plt.ylabel('# Astrocytes Active',weight='bold',size=15)
+
+sb.pointplot(data=DF,x='Day',y='# Cells',hue='Group_name',errorbar='se',palette='Set2',hue_order=['CxtB','CxtA'])
+plt.xlabel('Day',weight='normal',size=12)
+plt.ylabel('# Astrocytes Active',weight='normal',size=12)
 plt.gca().spines[['right', 'top']].set_visible(False)
 plt.gca().spines[['left','bottom']].set_linewidth(2)
-plt.gca().tick_params(width=2,labelsize=15)
+plt.gca().tick_params(width=2,labelsize=12)
 plt.gca().legend().set_title('')
-
-plt.ylim([40,150])
-plt.hlines(y=115,xmin=0,xmax=3,color='k')
-plt.text(1.5,114,'*',size=18,ha='center')
-plt.hlines(y=125,xmin=0,xmax=2,color='k')
-plt.text(1,124,'*',size=18,ha='center')
-plt.hlines(y=135,xmin=0,xmax=1,color='k')
-plt.text(0.5,134,'**',size=18,ha='center')
+#
+# plt.ylim([40,150])
+# plt.hlines(y=115,xmin=0,xmax=3,color='k')
+# plt.text(1.5,114,'*',size=18,ha='center')
+# plt.hlines(y=125,xmin=0,xmax=2,color='k')
+# plt.text(1,124,'*',size=18,ha='center')
+# plt.hlines(y=135,xmin=0,xmax=1,color='k')
+# plt.text(0.5,134,'**',size=18,ha='center')
 plt.tight_layout()
-plt.savefig('/Users/amonast/Desktop/dCA1_astro/Figures/all_cells.png')
+plt.savefig('/Users/suthardr/Desktop/activecells.svg')
 #%% stats 
 import pingouin as pg
 mix_anova = pg.mixed_anova(data=DF,dv='# Cells',between='Group',subject='Animal',within='Day')
@@ -79,16 +79,16 @@ posthoc = pg.pairwise_tests(data=DF,dv='# Cells',between='Group',within='Day',su
 #%%
 ############# Supplementary Figure 1 ################
 ############# EXT Group - FC Registrations ##########
-n_sessions=5
-animal = 'astro5'
-astro = cell_registration.CellReg('astro5','FOV1',n_sessions)
+n_sessions=2
+animal = 'astro3'
+astro = cell_registration.CellReg('astro3','FOV1',n_sessions)
 inds = astro.load_registration_table().iloc[:,0:n_sessions].copy()
 for col in inds.columns:
     inds[col]= inds[col].apply(np.int64) 
 
-image_files = astro.get_summary_images(image_type='max dff',shifted=True)
+image_files = astro.get_summary_images(image_type='max dff',shifted=False)
 images = [tifffile.imread(f) for f in image_files]
-footprints = astro.load_footprints_3D(affine_shifted=True)
+footprints = astro.load_footprints_3D(affine_shifted=False)
 
 fc_matched = []
 fc_matched_fc = []
@@ -104,15 +104,15 @@ for i in range(n_sessions-1):
 
 layout = astro.rois_plot(session_ind=0,idxs=fc_matched_fc[0],image=images[0])\
 + astro.rois_plot(session_ind=0,idxs=fc_matched_fc[1],image=images[0]) \
-+ astro.rois_plot(session_ind=0,idxs=fc_matched_fc[2],image=images[0]) \
-+ astro.rois_plot(session_ind=0,idxs=fc_matched_fc[3],image=images[0]) \
-+ astro.rois_plot(session_ind=1,idxs=fc_matched[0],image=images[1]) \
-+ astro.rois_plot(session_ind=2,idxs=fc_matched[1],image=images[2])\
-+ astro.rois_plot(session_ind=3,idxs=fc_matched[2],image=images[3])\
-+ astro.rois_plot(session_ind=4,idxs=fc_matched[3],image=images[4])
++ astro.rois_plot(session_ind=1,idxs=fc_matched[0],image=images[1])
+# + astro.rois_plot(session_ind=0,idxs=fc_matched_fc[2],image=images[0]) \
+# + astro.rois_plot(session_ind=0,idxs=fc_matched_fc[3],image=images[0]) \
+# + astro.rois_plot(session_ind=2,idxs=fc_matched[1],image=images[2])\
+# + astro.rois_plot(session_ind=3,idxs=fc_matched[2],image=images[3])\
+# + astro.rois_plot(session_ind=4,idxs=fc_matched[3],image=images[4])
 layout.cols(4)
 
-hv.save(layout,f"/Users/amonast/Desktop/dCA1_astro/Figures/fc_overlap_fovs_{animal}.png")
+hv.save(layout,f"/Users/suthardr/Desktop/fc_overlap_fovs_{animal}.png")
 #%%
 ################ GEN group - FC registrations ####################
 n_sessions=5
@@ -122,9 +122,9 @@ inds = astro.load_registration_table().iloc[:,0:n_sessions].copy()
 for col in inds.columns:
     inds[col]= inds[col].apply(np.int64) 
 
-image_files = astro.get_summary_images(image_type='max dff',shifted=True)
+image_files = astro.get_summary_images(image_type='max dff',shifted=False)
 images = [tifffile.imread(f) for f in image_files]
-footprints = astro.load_footprints_3D(affine_shifted=True)
+footprints = astro.load_footprints_3D(affine_shifted=False)
 
 fc_matched = []
 fc_matched_fc = []
@@ -326,8 +326,8 @@ for ani in animals:
 props_stable  = [all_stable[ani]/all_cells[ani] for ani in range(len(animals))]
 props_fc = [all_overlap[ani]/all_overlap[ani] for ani in range(len(animals))]
 #%% Bar charts 
-n_sessions=5
-animals = ['astro3','astro5','astro7','astro8','astro9']
+n_sessions=2
+animals = ['astro3','astro4', 'astro5','astro6', 'astro7','astro8','astro9']
 DF = pd.DataFrame()
 for ani in animals:
     astro = cell_registration.CellReg(animal=ani,fov='FOV1',N_sessions=n_sessions)
@@ -338,7 +338,7 @@ for ani in animals:
     session_only_all=[]
     for s in range(n_sessions-1):
         session=s+1
-        sn_cells = astro.load_footprints_3D(affine_shifted=True)[session].shape[0]
+        sn_cells = astro.load_footprints_3D(affine_shifted=False)[session].shape[0]
         n_cells.append(sn_cells)
         session_only = sn_cells - overlaps[s]
         session_only_all.append(session_only)
@@ -350,7 +350,7 @@ for ani in animals:
     df = pd.DataFrame()
     df['Animal'] = [ani]*4
     df['Group'] = [astro.group]*4
-    df['Day'] = ['Day1','Day2','Day3','Day4']
+    df['Day'] = ['Day1','Day2']
     df['Session'] = astro.sessions[1:]
     df['# Cells'] = n_cells
     df['% Overlap FC'] =overlaps/np.array(n_cells)*100
@@ -361,4 +361,3 @@ sb.barplot(data=DF,hue='Group',x='Day',y='% Overlap FC',errorbar='se')
 sb.swarmplot(data=DF,dodge=True,hue='Group',x='Day',y='% Overlap FC')
     # get # of overlaps with FC(Day0); 1x4 array - get from first row of csv
 
-# %%

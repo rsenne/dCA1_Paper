@@ -38,9 +38,9 @@ class CellReg:
         self.session_inds = session_inds
 
         if self.group == 'EXT':
-            self.sessions = ['fc', 'recall', 'ext1', 'ext2', 'ext3']
+            self.sessions = ['fc', 'recall']
         elif self.group == 'GEN':
-            self.sessions = ['fc', 'gen1', 'gen2', 'gen3', 'gen4']
+            self.sessions = ['fc', 'gen1']
 
         if session_inds is not None:
             if not self.N_sessions == len(session_inds):
@@ -120,7 +120,7 @@ class CellReg:
         else:
             footprint_path = os.path.join(self.base_directory, 'CellReg', self.animal + '_' + self.FOV,
                                           'converted_maps')
-            footprint_files = [os.path.join(footprint_path, self.animal + '_' + session + '_G&B_converted.mat') for
+            footprint_files = [os.path.join(footprint_path, self.animal + '_' + session + '_converted.mat') for
                                session in self.sessions]
             print(footprint_files)
 
