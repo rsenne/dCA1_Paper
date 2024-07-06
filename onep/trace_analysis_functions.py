@@ -97,9 +97,9 @@ def raster_plot(raster_array, xtick_range=None, xtick_freq=None):
                           labels=np.linspace(0, xtick_range, xtick_freq))
     return fig, ax
 
-def plot_whole_eta(data, ci='bci', sig_duration=8):
+def plot_whole_eta(data, ci='bci', sig_duration=8, axs=None):
     # Plot entire session - average trace + ci for data provided
-    #choose confidence interval type
+
     if ci == 'tci':
         c_int = tci(data)
     elif ci == 'bci':
@@ -110,8 +110,11 @@ def plot_whole_eta(data, ci='bci', sig_duration=8):
     # find significant indices
     start_indices = eta_significance(c_int[0, :], sig_duration=8)
 
+    #if axs is not provided
+    if axs is None:
+        fig, axs = plt.subplots()
+
     # create figure
-    fig, axs = plt.subplots()
     axs.plot(data.mean(axis=0))
     axs.fill_between(range(c_int.shape[1]), c_int[0, :], c_int[1, :], alpha=0.3)
     axs.set_xlabel('Time (seconds)')
@@ -124,6 +127,7 @@ def plot_whole_eta(data, ci='bci', sig_duration=8):
     for start_index in start_indices:
         end_index = start_index + sig_duration
         axs.hlines(y=y_height, xmin=start_index, xmax=end_index, colors='r')
+
     return axs
 
 def eta_individual_cells(data, timestamps, events=None, window=10, ax=None, **kwargs):
@@ -154,26 +158,28 @@ def eta_individual_cells(data, timestamps, events=None, window=10, ax=None, **kw
         else:
             across_eta_[j] = event_interpolation(curve, [timestamps.mean()])  # or handle as needed
 
-    # Make a figure
-    if ax is None:
-        fig, ax = plt.subplots(len(across_eta_), 1, sharex='col', figsize=(4, 60))
+    return across_eta_
+    # # Make a figure
+    # if ax is None:
+    #     fig, ax = plt.subplots(len(across_eta_), 1, sharex='col', figsize=(4, 60))
+    #
+    # time = np.linspace(-window / 2, window, number_of_indices)
 
-    time = np.linspace(-window / 2, window, number_of_indices)
+    # for i in range(len(data)):
+    #     ax[i].plot(time, np.array(across_eta_[i, :]))
+    #     ax[i].grid(False)
+    #     ax[i].spines['top'].set_visible(False)
+    #     ax[i].spines['right'].set_visible(False)
+    #     ax[i].axvline(0, linestyle='--', color='black')
+    #     ax[i].set_ylabel(r'$\frac{dF}{F}$ (%)')
+    # plt.subplots_adjust(wspace=0.05)
+    # plt.xlabel('Time(s)')
+    #
+    # if ax is None:
+    #     return fig, ax, across_eta_, time
+    # else:
+    #     return ax, across_eta_, time
 
-    for i in range(len(data)):
-        ax[i].plot(time, np.array(across_eta_[i, :]))
-        ax[i].grid(False)
-        ax[i].spines['top'].set_visible(False)
-        ax[i].spines['right'].set_visible(False)
-        ax[i].axvline(0, linestyle='--', color='black')
-        ax[i].set_ylabel(r'$\frac{dF}{F}$ (%)')
-    plt.subplots_adjust(wspace=0.05)
-    plt.xlabel('Time(s)')
-
-    if ax is None:
-        return fig, ax, across_eta_, time
-    else:
-        return ax, across_eta_, time
 
 # Example usage:
 # ax, across_eta_, time = eta_individual_cells(data=concat_a, timestamps=timestamps_a, events=[[120,180,240,300],], window=10)

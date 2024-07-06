@@ -27,7 +27,7 @@ for i in range(n):
     axs[i].plot(zscored[:4000,i], color='k')
     axs[i].axis('off')
 
-fig.savefig('/Users/suthardr/Desktop/astro7_gen1_rep_fig1.png')
+#fig.savefig('/Users/suthardr/Desktop/astro7_gen1_rep_fig1.png')
 #%%
 ########## Figure 1E #############
 ## Number of astrocytes active ##

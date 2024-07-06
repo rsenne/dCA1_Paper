@@ -32,18 +32,18 @@ DF['Group_name']=DF['Group'].map({'EXT': 'CxtA', 'GEN': 'CxtB'})
 # mpl.rc('font',**font)
 #%% ALL CELLS each session
 
-# plt.figure(figsize=(3,4))
-#
-# sb.pointplot(data=DF,x='Day',y='# Cells',hue='Group_name',errorbar='se',palette='Set2',hue_order=['CxtB','CxtA'])
-# plt.xlabel('Day',weight='regular',size=12)
-# plt.ylabel('# Astrocytes Active',weight='regular',size=12)
-# plt.gca().spines[['right', 'top']].set_visible(False)
-# plt.gca().spines[['left','bottom']].set_linewidth(2)
-# plt.gca().tick_params(width=2,labelsize=12)
-# plt.gca().legend().set_title('')
-#
-# plt.tight_layout()
-# plt.savefig('/Users/suthardr/Desktop/activecells.svg')
+plt.figure(figsize=(3,4))
+
+sb.pointplot(data=DF,x='Day',y='# Cells',hue='Group_name',errorbar='se',palette='Set2',hue_order=['CxtB','CxtA'])
+plt.xlabel('Day',weight='regular',size=12)
+plt.ylabel('# Astrocytes Active',weight='regular',size=12)
+plt.gca().spines[['right', 'top']].set_visible(False)
+plt.gca().spines[['left','bottom']].set_linewidth(2)
+plt.gca().tick_params(width=2,labelsize=12)
+plt.gca().legend().set_title('')
+
+plt.tight_layout()
+plt.savefig('/Users/suthardr/Desktop/activecells.svg')
 
 #%% TOTAL CELLS
 DF = pd.read_csv('/Users/suthardr/Desktop/NEW_dCA1_ANALYSIS/reactivated_heatmaps/total_cells.csv')
