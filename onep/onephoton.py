@@ -8,16 +8,19 @@ import matplotlib.pyplot as plt
 import pykalman
 from scipy.sparse.linalg import spsolve
 from scipy import sparse
+from scipy.interpolate import interp1d
 from joblib import Parallel, delayed
+from sklearn.preprocessing import StandardScaler
+import pickle as pkl
+import seaborn as sns
 
 import os
 from .cell_registration import CellReg
 import onep.behavior_analysis as behavior_analysis
 
-__all__ = ["InscopixProcessing", "dCA1Group"]
+__all__ = ["InscopixProcessing", "dCA1Group", "maxsort", "cross_validated_heat_plot", "sequence_heat_plot", "cosine_similarity_matrix"]
 
 
-# %%
 class InscopixProcessing():
     def __init__(self, animal, session, data_directory):
         '''
@@ -103,11 +106,13 @@ class InscopixProcessing():
 
     def apply_detrend(self):
         # Using joblib for parallel column processing
-        results = Parallel(n_jobs=-1)(delayed(self._als_detrend)(self.accepted_traces[col].values) for col in self.accepted_traces.columns)
+        results = Parallel(n_jobs=-1)(
+            delayed(self._als_detrend)(self.accepted_traces[col].values) for col in self.accepted_traces.columns)
 
         # Replacing old columns with detrended results
         for col, new_data in zip(self.accepted_traces.columns, results):
             self.accepted_traces.loc[:, col] = new_data
+
     @staticmethod
     def kalman_smoother(signal):
         """_summary_
@@ -133,7 +138,8 @@ class InscopixProcessing():
 
     def apply_smoother(self):
         # Using joblib for parallel column processing
-        results = Parallel(n_jobs=-1)(delayed(self.kalman_smoother)(self.accepted_traces[col].values) for col in self.accepted_traces.columns)
+        results = Parallel(n_jobs=-1)(
+            delayed(self.kalman_smoother)(self.accepted_traces[col].values) for col in self.accepted_traces.columns)
 
         # Replacing old columns with detrended results
         for col, new_data in zip(self.accepted_traces.columns, results):
@@ -164,12 +170,50 @@ class InscopixProcessing():
         else:
             table = CellReg(self.animal, 'FOV1').load_registration_table()
 
-    def classify_cells(self):
-        pass
+    def eta_individual_cells(self, events=None, window=10, ax=None, **kwargs):
+        data = self.accepted_traces.to_numpy()
 
-    def event_triggered_average(self):
-        pass
+        # Window in seconds times 15 indices per second and half the window period to visualize before
+        number_of_indices = int(window * (1 + (1/10)) * 10)
 
+        def event_interpolation(data, events_):
+            interp = interp1d(self.Timestamps, data, kind='cubic')
+            within_eta_ = np.zeros((len(events_), number_of_indices))
+            for i, event in enumerate(events_):
+                time_period = np.linspace(event - (window / 10), event + window, number_of_indices)
+                within_eta_[i] = interp(time_period)
+            return np.average(within_eta_, axis=0)
+
+        across_eta_ = np.zeros((data.shape[1], number_of_indices))
+
+        # If there's only one event, repeat it for each curve
+        if len(events) == 1:
+            events = events * len(data)
+
+        for j in range(np.shape(data)[1]):
+            across_eta_[j] = event_interpolation(data.transpose()[j], events[j])
+
+        # # make a figure
+        # if ax is None:
+        #     fig, ax = plt.subplots(len(across_eta_), 1, sharex='col', figsize=(4, 60))
+
+        time = np.linspace(-window / 10, window, number_of_indices)
+
+        # for i in range(data.shape[1]):
+        #     ax[i].plot(time, np.array(across_eta_[i, :]))
+        #     ax[i].grid(False)
+        #     ax[i].spines['top'].set_visible(False)
+        #     ax[i].spines['right'].set_visible(False)
+        #     ax[i].axvline(0, linestyle='--', color='black')
+        #     ax[i].set_ylabel(r'$\frac{dF}{F}$ (%)')
+        # plt.subplots_adjust(wspace=0.05)
+        # plt.xlabel('Time(s)')
+
+        if ax is None:
+            return  ax, across_eta_, time
+        else:
+            return ax, across_eta_, time
+            
 
 class dCA1Group:
     def __init__(self, *args):
@@ -190,11 +234,132 @@ class dCA1Group:
         """
         list_of_accepted = [ani.accepted_traces for ani in self.animals.values()]
         return pd.concat(list_of_accepted, ignore_index=True, axis=1)
+    
+    def save_group(self, filename):
+        """
+        Save the object as a pickle file for later.
+        """
+        with open(filename, 'wb') as f:
+            pkl.dump(self, f)
+        return
 
+def maxsort(arr):
+    """
+    Sorts an array by the argmax of each row.
+    """
+    # sort on the last 2/3 of the array
+    num_idxs = int(arr.shape[1] / 11)
+    #
+    sorted_idxs = np.argsort(np.argmax(arr[:, num_idxs:], axis=1))
+    return arr[sorted_idxs], sorted_idxs
 
+def sequence_heat_plot(unsorted_array, time, ax=None):
+    """
+    arr: N x T array of cell activity
+    time: T array of time
+    returns: ax
+    """
+    import matplotlib.ticker as ticker
+    # z-score array
+    arr = stats.zscore(unsorted_array, axis=1)
+    # sort array based on argmax of each row
+    arr, _ = maxsort(arr)  
+    # make a figure
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+    # plot the heatmap
+    sns.heatmap(arr, cmap='mako',cbar=True, cbar_kws={"label": r"z-scored $\frac{dF}{F}$"})
+    # set x-ticks
+    ax.set_xticks(np.linspace(0, arr.shape[1], 5), np.linspace(np.min(time), np.max(time), 5))
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(10))
+    ax.axvline((time.shape[0]/10), linestyle='--', color='white')
+    # set labels
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('Cells')
+    plt.tight_layout()
+    return ax, fig
 
+def cross_validated_heat_plot(unsorted_array, idxes_to_sort, time, ax=None):
+    """_summary_
 
+    Args:
+        unsorted_array (_type_): _description_
+        idxes_to_sort (_type_): _description_
+        sorted_array (_type_): _description_
+        time (_type_): _description_
+        ax (_type_, optional): _description_. Defaults to None.
 
+    Returns:
+        _type_: _description_
+    """
+    import matplotlib.ticker as ticker
+    #zscore array
+    unsorted_array = stats.zscore(unsorted_array, axis=1)
+    # sort array based on idxes_to_sort
+    cross_valled = unsorted_array[idxes_to_sort]
+    # # calculate spearman correlation
+    # rho, p = stats.spearmanr(cross_valled, sorted_array)
+    # make a figure
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+    # plot the heatmap
+    sns.heatmap(cross_valled, cmap='mako',cbar=True, cbar_kws={"label": r"z-scored $\frac{dF}{F}$"})
+    # set x-ticks
+    ax.set_xticks(np.linspace(0, unsorted_array.shape[1], 5), np.linspace(np.min(time), np.max(time), 5))
+    ax.axvline((time.shape[0]/10), linestyle='--', color='white')
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(10))
+    # set labels
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('Cells')
+    plt.tight_layout()
+    return ax
 
+def cosine_similarity_matrix(arr, time, cmap, seq_times=[120, 180, 240, 300]):
+    """
+    arr: N x T array of cell activity
+    time: array of timestamps
+    returns: N x N array of cosine similarity
+    """
+    # Ensure time is a numpy array
+    time = np.array(time)
 
+    # first adjust all arrays to 330s
+    idxs = time <= 330
+    arr = arr[idxs]
+    time = time[idxs]
+
+    # gets norms
+    norms = np.linalg.norm(arr, axis=1, keepdims=True)
+    arr = arr / norms
+
+    # calculates cosine similarity
+    cos_sim = np.dot(arr, arr.T)
+
+    # make a figure
+    fig, ax = plt.subplots()
+
+    # plot the heatmap
+    sns.heatmap(cos_sim, cmap=cmap, cbar=True, cbar_kws={"label": "Cosine Similarity"}, rasterized=True, vmin=-1, vmax=1, ax=ax)
+
+    # add white-dashed lines to show sequence times
+    for seq_time in seq_times:
+        idx = int(seq_time / 330 * len(time))
+        ax.axvline(idx, linestyle='--', color='white')
+        ax.axhline(idx, linestyle='--', color='white')
+
+    # set labels
+    ax.set_xlabel("Time (s)", fontsize=14)
+    ax.set_ylabel("Time (s)", fontsize=14)
+
+    # set x_ticks and y_ticks
+    num_ticks = 12  # 0, 30, 60, ..., 330
+    tick_locations = np.linspace(0, len(time) - 1, num_ticks).astype(int)
+    tick_labels = np.linspace(0, 330, num_ticks).astype(int)
+    
+    ax.set_xticks(tick_locations)
+    ax.set_xticklabels(tick_labels)
+    ax.set_yticks(tick_locations)
+    ax.set_yticklabels(tick_labels)
+
+    return cos_sim, ax, fig
 # %%

@@ -9,3 +9,5 @@
 *.csv
 *.png
 *.idea
+*.svg
+*.pkl
