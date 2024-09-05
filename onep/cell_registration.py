@@ -51,7 +51,7 @@ class CellReg:
             print(self.sessions)
 
 ######### footprint functions  ###########
-    def load_registration_table(self):
+    def load_registration_table(self,filter_accepted=True):
         '''
         Loads in final output cell_to_index table after final manual evaluation.
         '''

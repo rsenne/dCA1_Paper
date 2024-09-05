@@ -12,6 +12,7 @@ import plotly.graph_objs as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 from scipy.stats import zscore
+from onep.onephoton import InscopixProcessing
 
 # mpl.use('TkAgg')
 #%%
@@ -35,46 +36,47 @@ fig.savefig('/Users/amonast/Desktop/dCA1_astro/Figures/astro5_recall_rep_fig1.pn
 n_sessions =5
 DF = pd.DataFrame()
 for ani in ['astro3','astro4','astro5','astro6','astro7','astro8','astro9','astro10']:
-    astro = cell_registration.CellReg(ani,'FOV1',n_sessions)
-    footprints = astro.load_footprints_3D(affine_shifted=False)
-    N_cells = [footprints[i].shape[0] for i in range(len(footprints))]
-    series = pd.Series(N_cells)
+    if ani in ['astro3','astro4','astro5','astro6']:
+        group = 'ext'
+    elif ani in ['astro7','astro8','astro9','astro10']:
+        group = 'gen'
+    if group=='ext':
+        sessions = ['fc','recall','ext1','ext2','ext3']
+    elif group=='gen':
+        sessions = ['fc','gen1','gen2','gen3','gen4']
 
-    data = {'# Cells':series,'Animal':[ani]*n_sessions,'Group':[astro.group]*n_sessions,'Day':[0,1,2,3,4]}
+    isxs = [InscopixProcessing(ani,session,data_directory='/Users/amonast/Desktop/dCA1_astro') for session in sessions]
+    for isx in isxs:
+        isx.read_inscopix()
+
+    N_cells = [isx.accepted_inds.shape[0] for isx in isxs ]
+    series = pd.Series(N_cells)
+    data = {'# Cells':series,'Animal':[ani]*n_sessions,'Group':[group]*n_sessions,'Day':['Day1','Day2','Day3','Day4','Day5']}
     df = pd.DataFrame(data=data)
     DF = pd.concat([DF,df])
 
-DF['Group_name']=DF['Group'].map({'EXT': 'Ext', 'GEN': 'Neutral'})
-# 
-# ALL CELLS each session
-font = {'family' : 'Arial',
-        'weight' : 'bold',
-        'size'   : 10}
-mpl.rc('font',**font)
+DF['Group_name']=DF['Group'].map({'ext': 'CtxA', 'gen': 'CtxB'})
 #%%
-plt.figure(figsize=(3,4))
-#sb.lineplot(data=DF,x='Day',y='# Cells',hue='Group',err_style='bars')
-sb.pointplot(data=DF,x='Day',y='# Cells',hue='Group_name',errorbar='se',palette='Set2',hue_order=['Neutral','Ext'])
-plt.xlabel('Day',weight='bold',size=15)
-plt.ylabel('# Astrocytes Active',weight='bold',size=15)
-plt.gca().spines[['right', 'top']].set_visible(False)
-plt.gca().spines[['left','bottom']].set_linewidth(2)
-plt.gca().tick_params(width=2,labelsize=15)
-plt.gca().legend().set_title('')
+colors = ["#66C1A6", "#FC8C62"]
+sb.set_style("ticks")
 
-plt.ylim([40,150])
-plt.hlines(y=115,xmin=0,xmax=3,color='k')
-plt.text(1.5,114,'*',size=18,ha='center')
-plt.hlines(y=125,xmin=0,xmax=2,color='k')
-plt.text(1,124,'*',size=18,ha='center')
-plt.hlines(y=135,xmin=0,xmax=1,color='k')
-plt.text(0.5,134,'**',size=18,ha='center')
-plt.tight_layout()
-plt.savefig('/Users/amonast/Desktop/dCA1_astro/Figures/all_cells.png')
+fig,ax = plt.subplots(figsize=(4,3))
+sb.set_palette(sb.color_palette(colors))
+
+sb.pointplot(x='Day', y='# Cells', hue='Group_name', data=DF, errorbar='se')
+sb.stripplot(x='Day', y='# Cells', hue='Group_name', data=DF, jitter=False, size=4, linewidth=0.3, edgecolor='black')
+handles, labels = ax.get_legend_handles_labels()
+ax.legend(handles[:2], labels[:2], title='Group', loc='upper right',frameon=False,bbox_to_anchor=(1, 1.1))
+plt.ylabel('# Astrocytes Active')
+plt.ylim(20,135)
+sb.despine()
+
+plt.savefig('/Users/amonast/Desktop/dCA1_astro/Figures/all_cells.svg',transparent=True)
+
 #%% stats 
 import pingouin as pg
 mix_anova = pg.mixed_anova(data=DF,dv='# Cells',between='Group',subject='Animal',within='Day')
-posthoc = pg.pairwise_tests(data=DF,dv='# Cells',between='Group',within='Day',subject='Animal',padjust='fdr_bh')
+posthoc = pg.pairwise_tests(data=DF,dv='# Cells',between='Group',within='Day',subject='Animal',padjust='fdr_bh',within_first=False)
 
 #%%
 ############# Supplementary Figure 1 ################
