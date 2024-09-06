@@ -158,12 +158,13 @@ def eta_individual_cells(data, timestamps, events=None, window=10, ax=None, **kw
         else:
             across_eta_[j] = event_interpolation(curve, [timestamps.mean()])  # or handle as needed
 
-    return across_eta_
+    time = np.linspace(-window / 2, window, number_of_indices)
+
+    return across_eta_, time
     # # Make a figure
     # if ax is None:
     #     fig, ax = plt.subplots(len(across_eta_), 1, sharex='col', figsize=(4, 60))
     #
-    # time = np.linspace(-window / 2, window, number_of_indices)
 
     # for i in range(len(data)):
     #     ax[i].plot(time, np.array(across_eta_[i, :]))

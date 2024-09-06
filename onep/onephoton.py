@@ -299,8 +299,8 @@ def cross_validated_heat_plot(unsorted_array, idxes_to_sort, sorted_array, time,
     cross_valled = unsorted_array[idxes_to_sort]
 
     # calculate spearman correlation
-    rho, p = stats.spearmanr(cross_valled, sorted_array, axis=None)
-    print(rho, p)
+    # rho, p = stats.spearmanr(cross_valled, sorted_array, axis=None)
+    # print(rho, p)
 
     # make a figure
     if ax is None:

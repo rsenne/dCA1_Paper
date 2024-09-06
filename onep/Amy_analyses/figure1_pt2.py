@@ -31,50 +31,19 @@ DF['Group_name']=DF['Group'].map({'EXT': 'CxtA', 'GEN': 'CxtB'})
 #         'size'   : 10}
 # mpl.rc('font',**font)
 #%% ALL CELLS each session
-
-plt.figure(figsize=(3,4))
-
-sb.pointplot(data=DF,x='Day',y='# Cells',hue='Group_name',errorbar='se',palette='Set2',hue_order=['CxtB','CxtA'])
-plt.xlabel('Day',weight='regular',size=12)
-plt.ylabel('# Astrocytes Active',weight='regular',size=12)
-plt.gca().spines[['right', 'top']].set_visible(False)
-plt.gca().spines[['left','bottom']].set_linewidth(2)
-plt.gca().tick_params(width=2,labelsize=12)
-plt.gca().legend().set_title('')
-
-plt.tight_layout()
-plt.savefig('/Users/suthardr/Desktop/activecells.svg')
-
-#%% TOTAL CELLS
-DF = pd.read_csv('/Users/suthardr/Desktop/NEW_dCA1_ANALYSIS/reactivated_heatmaps/total_cells.csv')
-plt.figure(figsize=(3,4))
-
-sb.pointplot(data=DF,x='Day',y='Total_cells',hue='Group_name',errorbar='se',palette='Set2',hue_order=['CxtB','CxtA'])
-plt.xlabel('Day',weight='regular',size=12)
-plt.ylabel('# Astrocytes Active',weight='regular',size=12)
-plt.gca().spines[['right', 'top']].set_visible(False)
-plt.gca().spines[['left','bottom']].set_linewidth(2)
-plt.gca().tick_params(width=2,labelsize=12)
-plt.gca().legend().set_title('')
-
-plt.tight_layout()
-
-plt.savefig('/Users/suthardr/Desktop/total_cells.svg')
-
-#%% REACTIVATED CELLS
-DF = pd.read_csv('/Users/suthardr/Desktop/reactivated_cells.csv')
-plt.figure(figsize=(3,4))
-sb.boxplot(data=DF,x='Group_name',y='% Reactivated',palette='Set2',hue_order=['CxtB','CxtA'])
-sb.stripplot(x='Group_name', y='% Reactivated', data=DF,
-              size=4, linewidth=0.3, color='grey', edgecolor='black', dodge=True, jitter=False)
-plt.xlabel('Day',weight='regular',size=12)
-plt.ylabel('% Reactivated Cells',weight='regular',size=12)
-plt.gca().spines[['right', 'top']].set_visible(False)
-plt.gca().spines[['left','bottom']].set_linewidth(2)
-plt.gca().tick_params(width=2,labelsize=12)
-
-plt.tight_layout()
-plt.savefig('/Users/suthardr/Desktop/%reactivatedcells_box.svg')
+#
+# plt.figure(figsize=(3,4))
+#
+# sb.pointplot(data=DF,x='Day',y='# Cells',hue='Group_name',errorbar='se',palette='Set2',hue_order=['CxtB','CxtA'])
+# plt.xlabel('Day',weight='regular',size=12)
+# plt.ylabel('# Astrocytes Active',weight='regular',size=12)
+# plt.gca().spines[['right', 'top']].set_visible(False)
+# plt.gca().spines[['left','bottom']].set_linewidth(2)
+# plt.gca().tick_params(width=2,labelsize=12)
+# plt.gca().legend().set_title('')
+#
+# plt.tight_layout()
+# plt.savefig('/Users/suthardr/Desktop/activecells.svg')
 
 ##### Figure 1F #####
 #%% % of cells overlap with FC for each day, (combine all cells from animals within group)
