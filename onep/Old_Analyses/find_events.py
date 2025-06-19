@@ -1,11 +1,9 @@
 #%%
-import pandas as pd
 import numpy as np
 import scipy
 import matplotlib.pyplot as plt
-from onep import *
 
-ix = onephoton.InscopixProcessing(filename='/Users/amonast/Desktop/dCA1_astro/Cell_Traces/astro5_traces/astro5_fc_traces.csv',animal='astro5')
+ix = onephoton.InscopixProcessing(filename='/Users/amonast/Desktop/dCA1_astro/Cell_Traces/astro5_traces/astro5_fc_traces.csv', animal='astro5')
 ix.read_inscopix()
 traces = ix.accepted.values
 
