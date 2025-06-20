@@ -24,10 +24,6 @@ class CellReg:
         session_inds: list: indices of which sessions to pull, use if selecting a subset of sessions.
                             N_Sessions must be len(session_inds)
         '''
-        # self.base_directory = filedialog.askdirectory(title='Choose Experiment Directory')
-        # self.metadata_file = filedialog.askopenfilename(title='Choose metadata csv file')
-        # self.base_directory = r"C:\Users\RamirezLab\Desktop\Rebecca"
-        # self.metadata_file = r"C:\Users\RamirezLab\Desktop\Rebecca\Data_info_astro.csv"
         self.base_directory = "/Users/suthardr/Desktop/Cell_Traces"
         self.metadata_file = "/Users/suthardr/Desktop/Cell_Traces/Data_info_astro.csv"
         self.animal = animal
@@ -37,10 +33,10 @@ class CellReg:
         self.group = self.metadata['Group'].loc[self.metadata['Animal'] == self.animal].values[0]
         self.session_inds = session_inds
 
-        if self.group == 'EXT':
-            self.sessions = ['fc', 'recall']
-        elif self.group == 'GEN':
-            self.sessions = ['fc', 'gen1']
+        if self.group == 'A':
+            self.sessions = ['hab', 'fc', 'cxta', 'cxtb']
+        elif self.group == 'B':
+            self.sessions = ['hab', 'fc', 'cxta', 'cxtb']
 
         if session_inds is not None:
             if not self.N_sessions == len(session_inds):
@@ -274,9 +270,9 @@ class CellReg:
         image_files.sort()
 
         try:
-            if self.group == 'EXT':
+            if self.group == 'A':
                 self.image_files = [image_files[3], image_files[-1], image_files[0], image_files[1], image_files[2]]
-            elif self.group == 'GEN':
+            elif self.group == 'B':
                 self.image_files = image_files
 
             if session_inds is not None:

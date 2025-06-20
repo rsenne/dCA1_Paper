@@ -15,7 +15,7 @@ import seaborn as sns
 
 import os
 from .cell_registration import CellReg
-import onep.behavior_analysis as behavior_analysis
+from onep import behavior_analysis
 
 __all__ = ["InscopixProcessing", "dCA1Group", "maxsort", "cross_validated_heat_plot"]
 
@@ -27,16 +27,17 @@ class InscopixProcessing():
         session: string, must match according to mouse group + filenames (i.e. 'fc','ext1','gen1')
         data_directory: home directory for experiment; contains subfolders for Cell_Traces, CellReg
         '''
+        self.base_dir = data_directory
         self.rejected_inds = None
         self.accepted_inds = None
         self.accepted_df = None
         self.CellReg_path = os.path.join(data_directory, 'CellReg')
         self.Traces_path = os.path.join(data_directory, 'Cell_Traces', animal + '_traces')
-        self.DLC_path = os.path.join(data_directory, 'DLC', animal)
+        # self.DLC_path = os.path.join(data_directory, 'DLC', animal)
         self.Anymaze_path = os.path.join(data_directory, 'Anymaze', animal)
 
-        # if not os.path.exists(self.CellReg_path):
-        #     raise FileNotFoundError("Couldnt find CellReg subfolder, check data directory & subfolders")
+        if not os.path.exists(self.CellReg_path):
+            raise FileNotFoundError("Couldnt find CellReg subfolder, check data directory & subfolders")
         if not os.path.exists(self.Traces_path):
             raise FileNotFoundError("Couldn't find Traces subfolder, check data directory & subfolders")
 
@@ -48,11 +49,16 @@ class InscopixProcessing():
         self.rejected_traces = None
         self.read_inscopix()
         self.Timestamps = self.accepted_traces.index
-        self.DLC = os.path.join(self.DLC_path, animal + "_" + session + "_DLC.csv")
+        # self.DLC = os.path.join(self.DLC_path, animal + "_" + session + "_DLC.csv")
         self.anymaze = os.path.join(self.Anymaze_path, animal + "_" + session + "_behavior.csv")
-        self.percent_freezing, self.anymaze_df = behavior_analysis.calculate_binned_freezing(self.anymaze)
+        self.binned_freezing, self.anymaze_df = behavior_analysis.calculate_binned_freezing(self.anymaze)
         self.freeze_vector = behavior_analysis.create_freeze_vector(self.anymaze_df, timestamps=self.Timestamps)
-        self.dlc_df = behavior_analysis.process_dlc(behavior_analysis.read_dlc_file(self.DLC))
+        # self.dlc_df = behavior_analysis.process_dlc(behavior_analysis.read_dlc_file(self.DLC))
+        self.onsets, self.offsets = behavior_analysis.find_onset_offset(self.freeze_vector, self.Timestamps)
+
+    def run_behavior_analysis(self):
+        self.binned_freezing, self.anymaze_df = behavior_analysis.calculate_binned_freezing(self.anymaze)
+        self.freeze_vector = behavior_analysis.create_freeze_vector(self.anymaze_df, timestamps=self.Timestamps)
         self.onsets, self.offsets = behavior_analysis.find_onset_offset(self.freeze_vector, self.Timestamps)
 
     def read_inscopix(self):
