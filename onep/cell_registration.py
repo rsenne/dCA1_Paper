@@ -207,81 +207,81 @@ class CellReg:
 
         return self.reg_ind
 
-    ######### image functions ##########
-    def resize_images(self, image_type, shifted=True, session_inds=None):
-        image_files = self.get_summary_images(image_type, shifted=shifted, session_inds=session_inds)
-        images = [tifffile.imread(file) for file in image_files]
-        rows = [im.shape[0] for im in images]
-        cols = [im.shape[1] for im in images]
-        i = np.min(rows)
-        j = np.min(cols)
-        resized = [im[0:i, 0:j] for im in images]
-        return resized
+    # ######### image functions ##########
+    # def resize_images(self, image_type, shifted=True, session_inds=None):
+    #     image_files = self.get_summary_images(image_type, shifted=shifted, session_inds=session_inds)
+    #     images = [tifffile.imread(file) for file in image_files]
+    #     rows = [im.shape[0] for im in images]
+    #     cols = [im.shape[1] for im in images]
+    #     i = np.min(rows)
+    #     j = np.min(cols)
+    #     resized = [im[0:i, 0:j] for im in images]
+    #     return resized
 
-    def generate_corr_images(self, save=True):
-        '''
-        Generate correlation image; reliant on Caiman packages
-        :return: corr_ims: list of 2d correlation image arrays
-        '''
-        mc_movie_path = os.path.join(self.base_directory, 'Summary_Images', 'MC')
-        mc_movie_files = [os.path.join(mc_movie_path) for file in os.listdir(mc_movie_path) if 'MC_Movie.tif' in file]
+    # def generate_corr_images(self, save=True):
+    #     '''
+    #     Generate correlation image; reliant on Caiman packages
+    #     :return: corr_ims: list of 2d correlation image arrays
+    #     '''
+    #     mc_movie_path = os.path.join(self.base_directory, 'Summary_Images', 'MC')
+    #     mc_movie_files = [os.path.join(mc_movie_path) for file in os.listdir(mc_movie_path) if 'MC_Movie.tif' in file]
+    #
+    #     self.corr_ims = []
+    #     for file in mc_movie_files:
+    #         movie = cm.load(file)
+    #         Cn = cm.local_correlations(movie.transpose(1, 2, 0))
+    #         self.corr_ims.append(Cn)
+    #         if save:
+    #             tifffile.imwrite(os.path.join(mc_movie_path, self.animal + '_' + self.FOV + '_CorrImage.tif'))
+    #
+    #     return self.corr_ims
 
-        self.corr_ims = []
-        for file in mc_movie_files:
-            movie = cm.load(file)
-            Cn = cm.local_correlations(movie.transpose(1, 2, 0))
-            self.corr_ims.append(Cn)
-            if save:
-                tifffile.imwrite(os.path.join(mc_movie_path, self.animal + '_' + self.FOV + '_CorrImage.tif'))
-
-        return self.corr_ims
-
-    def get_summary_images(self, image_type='max dff', shifted=True, session_inds=None):
-        if image_type not in ['max dff', 'mean', 'min', 'max', 'std', 'corr']:
-            raise Exception("Image type not supported, choose max dff, mean, min, max, std or corr")
-
-        if image_type == 'max dff':
-            if not shifted:
-                images_path = os.path.join(self.base_directory, 'Summary_Images', self.animal + '_' + self.FOV, 'DFF')
-            else:
-                images_path = os.path.join(self.base_directory, 'Summary_Images', self.animal + '_' + self.FOV,
-                                           'affine_shifted_images')
-        else:
-            if not shifted:
-                images_path = os.path.join(self.base_directory, 'Summary_Images', self.animal + '_' + self.FOV, 'MC')
-            if shifted:
-                raise Exception('No shifted images of this type exist')
-        try:
-            if image_type == 'max dff':
-                image_files = [os.path.join(images_path, f) for f in os.listdir(images_path)]
-            elif image_type == 'max':
-                image_files = [os.path.join(images_path, f) for f in os.listdir(images_path) if 'MaxProj' in f]
-            elif image_type == 'mean':
-                image_files = [os.path.join(images_path, f) for f in os.listdir(images_path) if 'MeanProj' in f]
-            elif image_type == 'min':
-                image_files = [os.path.join(images_path, f) for f in os.listdir(images_path) if 'MinProj' in f]
-            elif image_type == 'std':
-                image_files = [os.path.join(images_path, f) for f in os.listdir(images_path) if 'STDProj' in f]
-            elif image_type == 'corr':
-                image_files = [os.path.join(images_path, f) for f in os.listdir(images_path) if 'CorrImage' in f]
-        except FileNotFoundError:
-            print('Image files not found please check filepaths & image type')
-
-        image_files.sort()
-
-        try:
-            if self.group == 'A':
-                self.image_files = [image_files[3], image_files[-1], image_files[0], image_files[1], image_files[2]]
-            elif self.group == 'B':
-                self.image_files = image_files
-
-            if session_inds is not None:
-                self.image_files = [self.image_files[ind] for ind in session_inds]
-
-        except IndexError:
-            self.image_files = image_files
-        print(image_files)
-        return self.image_files
+    # def get_summary_images(self, image_type='max dff', shifted=True, session_inds=None):
+    #     if image_type not in ['max dff', 'mean', 'min', 'max', 'std', 'corr']:
+    #         raise Exception("Image type not supported, choose max dff, mean, min, max, std or corr")
+    #
+    #     if image_type == 'max dff':
+    #         if not shifted:
+    #             images_path = os.path.join(self.base_directory, 'Summary_Images', self.animal + '_' + self.FOV, 'DFF')
+    #         else:
+    #             images_path = os.path.join(self.base_directory, 'Summary_Images', self.animal + '_' + self.FOV,
+    #                                        'affine_shifted_images')
+    #     else:
+    #         if not shifted:
+    #             images_path = os.path.join(self.base_directory, 'Summary_Images', self.animal + '_' + self.FOV, 'MC')
+    #         if shifted:
+    #             raise Exception('No shifted images of this type exist')
+    #     try:
+    #         if image_type == 'max dff':
+    #             image_files = [os.path.join(images_path, f) for f in os.listdir(images_path)]
+    #         elif image_type == 'max':
+    #             image_files = [os.path.join(images_path, f) for f in os.listdir(images_path) if 'MaxProj' in f]
+    #         elif image_type == 'mean':
+    #             image_files = [os.path.join(images_path, f) for f in os.listdir(images_path) if 'MeanProj' in f]
+    #         elif image_type == 'min':
+    #             image_files = [os.path.join(images_path, f) for f in os.listdir(images_path) if 'MinProj' in f]
+    #         elif image_type == 'std':
+    #             image_files = [os.path.join(images_path, f) for f in os.listdir(images_path) if 'STDProj' in f]
+    #         elif image_type == 'corr':
+    #             image_files = [os.path.join(images_path, f) for f in os.listdir(images_path) if 'CorrImage' in f]
+    #     except FileNotFoundError:
+    #         print('Image files not found please check filepaths & image type')
+    #
+    #     image_files.sort()
+    #
+    #     try:
+    #         if self.group == 'A':
+    #             self.image_files = [image_files[3], image_files[-1], image_files[0], image_files[1], image_files[2]]
+    #         elif self.group == 'B':
+    #             self.image_files = image_files
+    #
+    #         if session_inds is not None:
+    #             self.image_files = [self.image_files[ind] for ind in session_inds]
+    #
+    #     except IndexError:
+    #         self.image_files = image_files
+    #     print(image_files)
+    #     return self.image_files
 
     ######## affine transform functions ###########
     def export_affine_shift_footprints(self, footprints_all, X_shifts, Y_shifts, Rotations, Shears, session_inds=None):
@@ -360,23 +360,23 @@ class CellReg:
 
         return np.array(shifted_cells)
 
-    def apply_shifts_image(self, image, translation_x=0, translation_y=0, rotation=0, shear=0):
-        tform = AffineTransform(scale=(1.0, 1.0), rotation=rotation, shear=shear,
-                                translation=(translation_x, translation_y))
-        im_t = warp(image, tform.inverse)
-        return im_t
+    # def apply_shifts_image(self, image, translation_x=0, translation_y=0, rotation=0, shear=0):
+    #     tform = AffineTransform(scale=(1.0, 1.0), rotation=rotation, shear=shear,
+    #                             translation=(translation_x, translation_y))
+    #     im_t = warp(image, tform.inverse)
+    #     return im_t
 
-    def plot_overlaid_rgb(self, im1, im2, scale_factor=3, gain=5, alpha=0.8):
-        rgb = hv.RGB(np.dstack([im1 * gain, im2 * gain, np.zeros((im1.shape[0], im1.shape[1]))])).opts(
-            width=int(im1.shape[1]) * scale_factor,
-            height=int(im1.shape[0]) * scale_factor, alpha=alpha)
-        return rgb
-
-    def plot_translate(self, im1, im2, shift_x, shift_y, rotation=0, shear=0, gain=3):
-        tform = AffineTransform(scale=(1.0, 1.0), rotation=rotation, shear=shear,
-                                translation=(shift_x, shift_y))
-        im2_t = warp(im2, tform.inverse)
-        return self.plot_overlaid_rgb(im1, im2_t, gain=gain)
+    # def plot_overlaid_rgb(self, im1, im2, scale_factor=3, gain=5, alpha=0.8):
+    #     rgb = hv.RGB(np.dstack([im1 * gain, im2 * gain, np.zeros((im1.shape[0], im1.shape[1]))])).opts(
+    #         width=int(im1.shape[1]) * scale_factor,
+    #         height=int(im1.shape[0]) * scale_factor, alpha=alpha)
+    #     return rgb
+    #
+    # def plot_translate(self, im1, im2, shift_x, shift_y, rotation=0, shear=0, gain=3):
+    #     tform = AffineTransform(scale=(1.0, 1.0), rotation=rotation, shear=shear,
+    #                             translation=(shift_x, shift_y))
+    #     im2_t = warp(im2, tform.inverse)
+    #     return self.plot_overlaid_rgb(im1, im2_t, gain=gain)
 
     ###### plotting functions #########
     def plot_overlay_footprints(self, session_inds=None, cmap='jet', scale_factor=1):
@@ -407,27 +407,27 @@ class CellReg:
         return hv.Image(overlay_foots).opts(cmap=cmap, colorbar=True, width=dims[1] * scale_factor,
                                             height=dims[0] * scale_factor, clabel='session index')
 
-    def im_scale(self, I, min_pct='default', max_pct='default'):
-        '''
-        Sets image colorbar limits
-        :param I: array, Image to be plotted
-        :param min_pct: default = minimum pixel value of image is lower limit,
-                        float/int: percentile of pixel values to plot as minimum value in image
-        :param max_pct: min_pct: default = maximum pixel value of image is lower limit,
-                        float/int: percentile of pixel values to plot as maximum value in image
-        :return: (vmin,vmax), tuple of min and max pixel values to set as color limits.
-        '''
-        if min_pct == 'default':
-            vmin = np.amin(np.unique(I[I > 0]))  # first positive value as min for colormap
-        elif min_pct == 'min':
-            vmin = np.min(I)
-        elif (type(min_pct) == float) or (type(min_pct) == int):
-            vmin = np.percentile(I, min_pct)
-        if max_pct == 'default':
-            vmax = np.max(I)
-        elif (type(max_pct) == float) or (type(max_pct) == int):
-            vmax = np.percentile(I, max_pct)
-        return (vmin, vmax)
+    # def im_scale(self, I, min_pct='default', max_pct='default'):
+    #     '''
+    #     Sets image colorbar limits
+    #     :param I: array, Image to be plotted
+    #     :param min_pct: default = minimum pixel value of image is lower limit,
+    #                     float/int: percentile of pixel values to plot as minimum value in image
+    #     :param max_pct: min_pct: default = maximum pixel value of image is lower limit,
+    #                     float/int: percentile of pixel values to plot as maximum value in image
+    #     :return: (vmin,vmax), tuple of min and max pixel values to set as color limits.
+    #     '''
+    #     if min_pct == 'default':
+    #         vmin = np.amin(np.unique(I[I > 0]))  # first positive value as min for colormap
+    #     elif min_pct == 'min':
+    #         vmin = np.min(I)
+    #     elif (type(min_pct) == float) or (type(min_pct) == int):
+    #         vmin = np.percentile(I, min_pct)
+    #     if max_pct == 'default':
+    #         vmax = np.max(I)
+    #     elif (type(max_pct) == float) or (type(max_pct) == int):
+    #         vmax = np.percentile(I, max_pct)
+    #     return (vmin, vmax)
 
     def roi_plot(self, session_ind, idx, image=None, min_pct='default', max_pct='default', scale_factor: int = 2,
                  cmap_roi='hsv',
