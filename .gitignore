@@ -9,3 +9,8 @@
 *.csv
 *.png
 *.idea
+*.svg
+*.pkl
+movie.mp4
+test_anim.mp4
+BayesianNotebook.ipynb

@@ -175,7 +175,6 @@ class CellReg:
         '''
         footprints[footprints > 0] = 1
         return footprints
-
     def get_reg_ind(self):
         '''
         Get table of registered indices from CellReg from all sessions

@@ -12,6 +12,7 @@ import plotly.graph_objs as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 from scipy.stats import zscore
+from onep.onephoton import InscopixProcessing
 
 mpl.use('TkAgg')
 #%%
@@ -74,7 +75,7 @@ plt.savefig('/Users/suthardr/Desktop/activecells.svg')
 #%% stats 
 import pingouin as pg
 mix_anova = pg.mixed_anova(data=DF,dv='# Cells',between='Group',subject='Animal',within='Day')
-posthoc = pg.pairwise_tests(data=DF,dv='# Cells',between='Group',within='Day',subject='Animal',padjust='fdr_bh')
+posthoc = pg.pairwise_tests(data=DF,dv='# Cells',between='Group',within='Day',subject='Animal',padjust='fdr_bh',within_first=False)
 
 #%%
 ############# Supplementary Figure 1 ################

@@ -1,5 +1,6 @@
 # %%
 import numpy as np
+#import jax
 import pandas as pd
 import scipy.stats as stats
 import statsmodels.api as sm
@@ -17,7 +18,7 @@ import os
 from .cell_registration import CellReg
 from onep import behavior_analysis
 
-__all__ = ["InscopixProcessing", "dCA1Group", "maxsort", "cross_validated_heat_plot"]
+__all__ = ["InscopixProcessing", "dCA1Group", "maxsort", "cross_validated_heat_plot", "sequence_heat_plot", "cosine_similarity_matrix"]
 
 
 class InscopixProcessing():
@@ -250,6 +251,20 @@ class InscopixProcessing():
         # do single event "eta's"
         pass
 
+    def grab_all_traces(self):
+        """
+        Make a single dataframe that has the accepted cells from every animal.
+        """
+        list_of_accepted = [ani.accepted_traces for ani in self.animals.values()]
+        return pd.concat(list_of_accepted, ignore_index=True, axis=1)
+    
+    def save_group(self, filename):
+        """
+        Save the object as a pickle file for later.
+        """
+        with open(filename, 'wb') as f:
+            pkl.dump(self, f)
+        return
 
 class dCA1Group:
     def __init__(self, *args):
