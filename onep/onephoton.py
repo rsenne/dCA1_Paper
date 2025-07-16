@@ -1,6 +1,4 @@
-# %%
 import numpy as np
-#import jax
 import pandas as pd
 import scipy.stats as stats
 import statsmodels.api as sm
@@ -13,32 +11,24 @@ from joblib import Parallel, delayed
 from sklearn.preprocessing import StandardScaler
 import pickle as pkl
 import seaborn as sns
-
 import os
-from .cell_registration import CellReg
+import h5py
 from onep import behavior_analysis
 
 __all__ = ["InscopixProcessing", "dCA1Group", "maxsort", "cross_validated_heat_plot", "sequence_heat_plot", "cosine_similarity_matrix"]
 
-
 class InscopixProcessing():
     def __init__(self, animal, session, data_directory):
-        '''
-        animal: string, must match in all filenames
-        session: string, must match according to mouse group + filenames (i.e. 'fc','ext1','gen1')
-        data_directory: home directory for experiment; contains subfolders for Cell_Traces, CellReg
-        '''
         self.base_dir = data_directory
         self.rejected_inds = None
         self.accepted_inds = None
         self.accepted_df = None
         self.CellReg_path = os.path.join(data_directory, 'CellReg')
         self.Traces_path = os.path.join(data_directory, 'Cell_Traces', animal + '_traces')
-        # self.DLC_path = os.path.join(data_directory, 'DLC', animal)
         self.Anymaze_path = os.path.join(data_directory, 'Anymaze', animal)
 
         if not os.path.exists(self.CellReg_path):
-            raise FileNotFoundError("Couldnt find CellReg subfolder, check data directory & subfolders")
+            raise FileNotFoundError("Could not find CellReg subfolder, check data directory & subfolders")
         if not os.path.exists(self.Traces_path):
             raise FileNotFoundError("Couldn't find Traces subfolder, check data directory & subfolders")
 
@@ -50,12 +40,31 @@ class InscopixProcessing():
         self.rejected_traces = None
         self.read_inscopix()
         self.Timestamps = self.accepted_traces.index
-        # self.DLC = os.path.join(self.DLC_path, animal + "_" + session + "_DLC.csv")
         self.anymaze = os.path.join(self.Anymaze_path, animal + "_" + session + "_behavior.csv")
         self.binned_freezing, self.anymaze_df = behavior_analysis.calculate_binned_freezing(self.anymaze)
         self.freeze_vector = behavior_analysis.create_freeze_vector(self.anymaze_df, timestamps=self.Timestamps)
-        # self.dlc_df = behavior_analysis.process_dlc(behavior_analysis.read_dlc_file(self.DLC))
         self.onsets, self.offsets = behavior_analysis.find_onset_offset(self.freeze_vector, self.Timestamps)
+
+    def get_registration_table(self, session_labels=["FC-HAB", "FC-A", "FC-B"]):
+        """
+        Loads the cell_to_index_map from the most recent CellReg output in per-session folders.
+        """
+        registration_tables = {}
+        reg_base = os.path.join(self.base_dir, "CellReg", self.animal)
+        for label in reversed(session_labels):
+            session_dir = os.path.join(reg_base, f"CellRegResults{label}")
+            if not os.path.exists(session_dir):
+                continue
+            mat_files = [f for f in os.listdir(session_dir) if "cellRegistered" in f]
+            if mat_files:
+                latest = sorted(mat_files)[-1]
+                with h5py.File(os.path.join(session_dir, latest), "r") as file:
+                    reg_map = file['cell_registered_struct']['cell_to_index_map'][()]
+                    registration_tables[label] = reg_map.T.astype(int) - 1
+        if registration_tables:
+            self.registration_tables = registration_tables
+            return registration_tables
+        raise FileNotFoundError("No 'cellRegistered' file found in any session.")
 
     def run_behavior_analysis(self):
         self.binned_freezing, self.anymaze_df = behavior_analysis.calculate_binned_freezing(self.anymaze)
@@ -166,34 +175,6 @@ class InscopixProcessing():
         else:
             return self.all_traces.values.T
 
-    def load_registration_table(self, filter_accepted=True, session_subset=None):
-        """
-        session_subset: (optional) list, session indices (i.e. 0 for fc, 1 for ext1/gen1 for animal with all 5 sessions etc)
-        to do filter accepted
-        """
-        if session_subset is not None:
-            table = CellReg(self.animal, 'FOV1', N_sessions=len(session_subset),
-                            session_inds=session_subset).load_registration_table()
-        else:
-            table = CellReg(self.animal, 'FOV1').load_registration_table()
-        return table
-
-
-    def load_footprints(self,filter_accepted=True,session_subset=None):
-        '''
-        session_subset: (optional) list, session indices (i.e. 0 for fc, 1 for ext1/gen1 for animal with all 5 sessions etc)
-        to do filter accepted
-        '''
-        # try:
-        #     from cell_registration import CellReg
-        # except ImportError:
-        #     ImportError('Need CellReg functions from cell_registration.py')
-
-        table = self.load_registration_table(filter_accepted=filter_accepted,session_subset=session_subset)
-        cellreg = CellReg(self.animal,'FOV1',N_sessions = len(session_subset),session_inds=session_subset)
-        foots = cellreg.load_footprints_3D(select_sessions=False,affine_shifted=False)
-        return foots
-
     def eta_individual_cells(self, events=None, window=10, ax=None, **kwargs):
         data = self.accepted_traces.to_numpy()
         data = stats.zscore(data, axis=0)  # z-scored data
@@ -302,6 +283,31 @@ def maxsort(arr):
     sorted_idxs = np.argsort(np.argmax(arr, axis=1))
     return arr[sorted_idxs], sorted_idxs
 
+def sequence_heat_plot(unsorted_array, time, ax=None):
+    """
+    arr: N x T array of cell activity
+    time: T array of time
+    returns: ax
+    """
+    import matplotlib.ticker as ticker
+    # z-score array
+    arr = stats.zscore(unsorted_array, axis=1)
+    # sort array based on argmax of each row
+    arr, _ = maxsort(arr)  
+    # make a figure
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+    # plot the heatmap
+    sns.heatmap(arr, cmap='mako',cbar=True, cbar_kws={"label": r"z-scored $\frac{dF}{F}$"})
+    # set x-ticks
+    ax.set_xticks(np.linspace(0, arr.shape[1], 5), np.linspace(np.min(time), np.max(time), 5))
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(10))
+    ax.axvline((time.shape[0]/10), linestyle='--', color='white')
+    # set labels
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('Cells')
+    plt.tight_layout()
+    return ax, fig
 
 def cross_validated_heat_plot(unsorted_array, idxes_to_sort, sorted_array, time, ax=None):
     """_summary_
@@ -335,3 +341,52 @@ def cross_validated_heat_plot(unsorted_array, idxes_to_sort, sorted_array, time,
     ax.set_xlabel('Time (s)')
     ax.set_ylabel('Cells')
     return ax
+
+def cosine_similarity_matrix(arr, time, cmap, seq_times=[120, 180, 240, 300]):
+    """
+    arr: N x T array of cell activity
+    time: array of timestamps
+    returns: N x N array of cosine similarity
+    """
+    # Ensure time is a numpy array
+    time = np.array(time)
+
+    # first adjust all arrays to 330s
+    idxs = time <= 330
+    arr = arr[idxs]
+    time = time[idxs]
+
+    # gets norms
+    norms = np.linalg.norm(arr, axis=1, keepdims=True)
+    arr = arr / norms
+
+    # calculates cosine similarity
+    cos_sim = np.dot(arr, arr.T)
+
+    # make a figure
+    fig, ax = plt.subplots()
+
+    # plot the heatmap
+    sns.heatmap(cos_sim, cmap=cmap, cbar=True, cbar_kws={"label": "Cosine Similarity"}, rasterized=True, vmin=-1, vmax=1, ax=ax)
+
+    # add white-dashed lines to show sequence times
+    for seq_time in seq_times:
+        idx = int(seq_time / 330 * len(time))
+        ax.axvline(idx, linestyle='--', color='white')
+        ax.axhline(idx, linestyle='--', color='white')
+
+    # set labels
+    ax.set_xlabel("Time (s)", fontsize=14)
+    ax.set_ylabel("Time (s)", fontsize=14)
+
+    # set x_ticks and y_ticks
+    num_ticks = 12  # 0, 30, 60, ..., 330
+    tick_locations = np.linspace(0, len(time) - 1, num_ticks).astype(int)
+    tick_labels = np.linspace(0, 330, num_ticks).astype(int)
+    
+    ax.set_xticks(tick_locations)
+    ax.set_xticklabels(tick_labels)
+    ax.set_yticks(tick_locations)
+    ax.set_yticklabels(tick_labels)
+
+    return cos_sim, ax, fig
