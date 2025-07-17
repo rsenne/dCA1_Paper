@@ -44,6 +44,7 @@ class InscopixProcessing():
         self.binned_freezing, self.anymaze_df = behavior_analysis.calculate_binned_freezing(self.anymaze)
         self.freeze_vector = behavior_analysis.create_freeze_vector(self.anymaze_df, timestamps=self.Timestamps)
         self.onsets, self.offsets = behavior_analysis.find_onset_offset(self.freeze_vector, self.Timestamps)
+        self.get_registration_table()
 
     def get_registration_table(self, session_labels=["FC-HAB", "FC-A", "FC-B"]):
         """
