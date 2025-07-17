@@ -1,10 +1,7 @@
 #%%
-from onep import *
-import holoviews as hv
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sb
 import matplotlib as mpl
 mpl.use('TkAgg')
 
@@ -14,7 +11,7 @@ mpl.use('TkAgg')
 n_sessions =2
 DF = pd.DataFrame()
 for ani in ['astro3','astro4','astro5','astro6','astro7','astro8','astro9']:
-    astro = cell_registration.CellReg(ani,'FOV1',n_sessions)
+    astro = cell_registration.CellReg(ani, 'FOV1', n_sessions)
     footprints = astro.load_footprints_3D(affine_shifted=False)
     N_cells = [footprints[i].shape[0] for i in range(len(footprints))]
     series = pd.Series(N_cells)
@@ -48,7 +45,7 @@ DF['Group_name']=DF['Group'].map({'EXT': 'CxtA', 'GEN': 'CxtB'})
 ##### Figure 1F #####
 #%% % of cells overlap with FC for each day, (combine all cells from animals within group)
 
-astro = cell_registration.CellReg('astro3','FOV1',n_sessions)
+astro = cell_registration.CellReg('astro3', 'FOV1', n_sessions)
 inds = astro.load_registration_table().iloc[:,0:n_sessions]
 for col in inds.columns:
     inds[col]= inds[col].apply(np.int64) #wrong
@@ -58,7 +55,7 @@ session_only = [0, 0, 0, 0]
 session_overlap = [0, 0, 0, 0]
 stable_overlap = 0
 for annie in group:
-    astro_tables = cell_registration.CellReg(annie,'FOV1',n_sessions)
+    astro_tables = cell_registration.CellReg(annie, 'FOV1', n_sessions)
     inds = astro_tables.load_registration_table().iloc[:, 0:n_sessions]
     for i in range(len(inds['fc'])):
         if inds['fc'][i] >= 0 and inds['recall'][i] >= 0:
@@ -119,7 +116,7 @@ recall_only = [0]
 overlap = [0]
 # stable_overlap = 0
 for annie in group:
-    astro_tables = cell_registration.CellReg(annie,'FOV1',n_sessions)
+    astro_tables = cell_registration.CellReg(annie, 'FOV1', n_sessions)
     inds = astro_tables.load_registration_table().iloc[:, 0:n_sessions]
     for i in range(len(inds.iloc[:,0])):
         if inds.iloc[:,0][i] >= 0 and inds.iloc[:,1][i] >= 0:

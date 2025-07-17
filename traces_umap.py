@@ -1,8 +1,5 @@
 import pandas as pd
-from onep.cell_registration import CellReg
-from onep.onephoton import InscopixProcessing
-from onep import onephoton
-import scipy.stats as stats 
+import scipy.stats as stats
 import numpy as np
 
 csvs_a  = ['/Users/amonast/Desktop/dCA1_astro/Cell_Traces/astro3_traces/astro3_recall_traces_preprocess.csv',

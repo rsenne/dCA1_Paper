@@ -1,5 +1,4 @@
 #%%
-from onep import *
 import holoviews as hv
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,9 +9,7 @@ import tifffile
 hv.extension('bokeh')
 import plotly.graph_objs as go
 import plotly.express as px
-from plotly.subplots import make_subplots
 from scipy.stats import zscore
-from onep.onephoton import InscopixProcessing
 
 mpl.use('TkAgg')
 #%%
@@ -36,7 +33,7 @@ for i in range(n):
 n_sessions =2
 DF = pd.DataFrame()
 for ani in ['astro3','astro4','astro5','astro6','astro7','astro8','astro9']:
-    astro = cell_registration.CellReg(ani,'FOV1',n_sessions)
+    astro = cell_registration.CellReg(ani, 'FOV1', n_sessions)
     footprints = astro.load_footprints_3D(affine_shifted=False)
     N_cells = [footprints[i].shape[0] for i in range(len(footprints))]
     series = pd.Series(N_cells)
@@ -82,7 +79,7 @@ posthoc = pg.pairwise_tests(data=DF,dv='# Cells',between='Group',within='Day',su
 ############# EXT Group - FC Registrations ##########
 n_sessions=2
 animal = 'astro3'
-astro = cell_registration.CellReg('astro3','FOV1',n_sessions)
+astro = cell_registration.CellReg('astro3', 'FOV1', n_sessions)
 inds = astro.load_registration_table().iloc[:,0:n_sessions].copy()
 for col in inds.columns:
     inds[col]= inds[col].apply(np.int64) 
@@ -118,7 +115,7 @@ hv.save(layout,f"/Users/suthardr/Desktop/fc_overlap_fovs_{animal}.png")
 ################ GEN group - FC registrations ####################
 n_sessions=5
 animal = 'astro8'
-astro = cell_registration.CellReg(animal,'FOV1',n_sessions)
+astro = cell_registration.CellReg(animal, 'FOV1', n_sessions)
 inds = astro.load_registration_table().iloc[:,0:n_sessions].copy()
 for col in inds.columns:
     inds[col]= inds[col].apply(np.int64) 
@@ -165,7 +162,7 @@ all_stable = []
 color_discrete_sequence = ['rgb(255,255,255)']+px.colors.qualitative.Set2
 
 for ani in animals:
-    astro = cell_registration.CellReg(animal=ani,fov='FOV1',N_sessions=n_sessions)
+    astro = cell_registration.CellReg(animal=ani, fov='FOV1', N_sessions=n_sessions)
         
     #get total num cells for every session
     n_cells=[]
@@ -235,7 +232,7 @@ all_stable = []
 
 color_discrete_sequence = ['rgb(255,255,255)']+px.colors.qualitative.Dark2
 for ani in animals:
-    astro = cell_registration.CellReg(animal=ani,fov='FOV1',N_sessions=n_sessions)
+    astro = cell_registration.CellReg(animal=ani, fov='FOV1', N_sessions=n_sessions)
         
     #get total num cells for every session
     n_cells=[]
@@ -303,7 +300,7 @@ all_stable = []
 
 color_discrete_sequence = ['rgb(255,255,255)']+px.colors.qualitative.Dark2
 for ani in animals:
-    astro = cell_registration.CellReg(animal=ani,fov='FOV1',N_sessions=n_sessions)
+    astro = cell_registration.CellReg(animal=ani, fov='FOV1', N_sessions=n_sessions)
         
     #get total num cells for every session
     n_cells=[]
@@ -331,7 +328,7 @@ n_sessions=2
 animals = ['astro3','astro4', 'astro5','astro6', 'astro7','astro8','astro9']
 DF = pd.DataFrame()
 for ani in animals:
-    astro = cell_registration.CellReg(animal=ani,fov='FOV1',N_sessions=n_sessions)
+    astro = cell_registration.CellReg(animal=ani, fov='FOV1', N_sessions=n_sessions)
     overlaps = astro.load_registration_table().iloc[0,n_sessions:].values.astype(int)
 
     #get total num cells for every session
