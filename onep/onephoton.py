@@ -13,7 +13,7 @@ import pickle as pkl
 import seaborn as sns
 import os
 import h5py
-from onep import behavior_analysis
+from onep.Finalized import behavior_analysis
 
 __all__ = ["InscopixProcessing", "dCA1Group", "maxsort", "cross_validated_heat_plot", "sequence_heat_plot", "cosine_similarity_matrix"]
 
