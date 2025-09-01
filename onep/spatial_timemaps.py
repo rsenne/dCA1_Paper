@@ -1,6 +1,6 @@
 from scipy.stats import zscore
 import onep.onephoton as onep
-from onep.trace_analysis_functions import eta_individual_cells
+from onep.Finalized.trace_analysis_functions import eta_individual_cells
 import numpy as np
 import seaborn as sb
 import matplotlib as mpl
