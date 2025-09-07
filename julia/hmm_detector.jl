@@ -84,7 +84,7 @@ begin
 	This function does post-hoc analysis on the posterior distribution of the HMM. We use the folowing heuristic to define a "sequence": 1.) Posterior for the hidden state representing high activity must be > 0.95. 2.) Must have consecutive indicies lasting 2.0 second of time (20). Any epochs less than 10.0 second from one another will be merged.
 	=#
 	function classify_sequences(γ::Matrix{Float64}, hmm::HMM; 
-		threshold::Float64 = 0.95, min_duration::Int = 20, separation_duration::Int=100)
+		threshold::Float64 = 0.99, min_duration::Int = 20, separation_duration::Int=100)
 		
 		# Identify which state is the high-activity one
 		means = [mean(d) for d in hmm.dists]
