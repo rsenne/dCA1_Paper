@@ -39,18 +39,21 @@ md"## This cell loads data and defines some useful functions for later on."
 # ╔═╡ 1feb1da4-bfc5-43f3-8b79-dd34b97a1eae
 begin
 	# specify where the files are located
-	ddir = "../preprocessed_files"
-
-	# load files
-	csv_files = filter(f -> endswith(f, ".csv"), readdir(ddir))
+	dir = "/Users/ryansenne/Desktop/Dill"
+	ddir = joinpath(dir, "fc_traces_csv")
+	
+	# get the list of all .csv files containing "astro" in the name
+	csv_files = filter(f -> endswith(f, ".csv") && occursin("astro", f), readdir(ddir))
+	
+	# read each file into a named Dict of DataFrames
 	named_dfs = Dict(file => CSV.read(joinpath(ddir, file), DataFrame) for file in csv_files)
 
 	#=
 	For each of these files loaded above, the first column is the time vector. The subsequent columns are all vectors that are a detected and "accepted" cell. This funciton preprocesses the data to pass to the HMM. We will sum across the rows, turning this into a 1D vector (ignoring the time vector.)
 	=#
 	function process_df(df::DataFrame)
-		# Drop time column (assumed first column)
-		activity = df[:, 2:end]
+		# skip first 100 indices or so
+		activity = df[100:end, :]
 		# Convert to matrix to ensure numeric-only ops
     	mat = Matrix(activity)
 		# Sum across cells for each timepoint
@@ -78,10 +81,10 @@ begin
 	end
 
 	#=
-	This function does post-hoc analysis on the posterior distribution of the HMM. We use the folowing heuristic to define a "sequence": 1.) Posterior for the hidden state representing high activity must be > 0.8. 2.) Must have consecutive indicies lasting 1.0 second of time (10). Any epochs less than 1.0 second from one another will be merged.
+	This function does post-hoc analysis on the posterior distribution of the HMM. We use the folowing heuristic to define a "sequence": 1.) Posterior for the hidden state representing high activity must be > 0.95. 2.) Must have consecutive indicies lasting 2.0 second of time (20). Any epochs less than 10.0 second from one another will be merged.
 	=#
 	function classify_sequences(γ::Matrix{Float64}, hmm::HMM; 
-		threshold::Float64 = 0.8, min_duration::Int = 10)
+		threshold::Float64 = 0.99, min_duration::Int = 20, separation_duration::Int=100)
 		
 		# Identify which state is the high-activity one
 		means = [mean(d) for d in hmm.dists]
@@ -114,12 +117,12 @@ begin
 		# Filter by minimum duration
 		sequences = filter(seq -> length(seq) ≥ min_duration, sequences)
 	
-		# Merge close sequences (gap ≤ min_duration)
+		# Merge close sequences (gap ≤ separation_duration)
 		merged = []
 		if !isempty(sequences)
 			curr = sequences[1]
 			for i in 2:length(sequences)
-				if sequences[i][1] - curr[end] ≤ min_duration
+				if sequences[i][1] - curr[end] ≤ separation_duration
 					curr = vcat(curr, sequences[i])
 				else
 					push!(merged, curr)
@@ -136,6 +139,9 @@ end
 
 # ╔═╡ 38038914-8fda-4aac-9c37-db518fec2104
 md"## Detect the putative sequences."
+
+# ╔═╡ 84d7d748-2511-4fff-8e19-c5235c17186e
+# results["astroM10_cxtb_accepted_traces.csv"].events
 
 # ╔═╡ 82021d74-86d6-495d-95d9-6fcccc922c21
 begin
@@ -157,9 +163,6 @@ begin
 	results
 end
 
-
-# ╔═╡ 898e14e2-db6f-40f0-ada7-2174c64e84a9
-results["F3.csv"].events
 
 # ╔═╡ 9c5061a5-364c-4276-8876-513b1833c66c
 begin
@@ -195,6 +198,42 @@ begin
 	plot_file_results(selected_file)
 end
 
+# ╔═╡ 0fa33ea7-0f38-4bdf-adaf-0eaedc9cc570
+md"## Use the resulting detected events to get the timepoints at which the events began."
+
+# ╔═╡ 581f10d1-b8e3-4296-b9ed-93ff982fc9d9
+begin
+	time_vec = CSV.read(joinpath(dir, "time.csv"), DataFrame)
+
+	# get all animals and event times
+	event_times = Dict()
+	for animal in csv_files
+		result = results[animal].events
+
+		times = [time_vec[event[1], 1] for event in result]
+		strs = split(animal, "_")
+		event_times[strs[1] * "_" * strs[2]] = times
+	end
+end
+
+# ╔═╡ a5c99537-1bef-43d1-bbe3-e466a2af85f3
+md"## Pad dictionary entries so we can turn into a DataFrame for export as a csv."
+
+# ╔═╡ 57f4fbfa-7c8b-4ed0-8c89-c27ef6b91213
+begin
+	# Find the maximum column length
+	maxlen = maximum(length.(values(event_times)))
+	
+	# Pad each column with `missing` to equal length
+	padded_dict = Dict(k => vcat(v, fill(missing, maxlen - length(v))) for (k, v) in event_times)
+	
+	# Convert to DataFrame
+	df = DataFrame(padded_dict)
+
+	# Save dict
+	CSV.write(joinpath(ddir, "event_times.csv"), df)
+end
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
@@ -219,7 +258,7 @@ PlutoUI = "~0.7.65"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.5"
+julia_version = "1.11.6"
 manifest_format = "2.0"
 project_hash = "a1959047219755c31ec8918e83373e331039bed9"
 
@@ -1609,9 +1648,13 @@ version = "1.8.1+0"
 # ╟─14eb3517-90e8-4010-9cfa-7fe7b1412dd4
 # ╠═1feb1da4-bfc5-43f3-8b79-dd34b97a1eae
 # ╟─38038914-8fda-4aac-9c37-db518fec2104
+# ╠═84d7d748-2511-4fff-8e19-c5235c17186e
 # ╠═82021d74-86d6-495d-95d9-6fcccc922c21
-# ╠═898e14e2-db6f-40f0-ada7-2174c64e84a9
 # ╠═9c5061a5-364c-4276-8876-513b1833c66c
 # ╠═dedf52e8-5d39-4ce5-9cd8-1d04ae7e8d72
+# ╟─0fa33ea7-0f38-4bdf-adaf-0eaedc9cc570
+# ╠═581f10d1-b8e3-4296-b9ed-93ff982fc9d9
+# ╟─a5c99537-1bef-43d1-bbe3-e466a2af85f3
+# ╠═57f4fbfa-7c8b-4ed0-8c89-c27ef6b91213
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
