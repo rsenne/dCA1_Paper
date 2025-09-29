@@ -40,7 +40,7 @@ md"## This cell loads data and defines some useful functions for later on."
 begin
 	# specify where the files are located
 	dir = "/Users/ryansenne/Desktop/Dill"
-	ddir = joinpath(dir, "fc_traces_csv")
+	ddir = joinpath(dir, "cxta_traces_csv")
 	
 	# get the list of all .csv files containing "astro" in the name
 	csv_files = filter(f -> endswith(f, ".csv") && occursin("astro", f), readdir(ddir))
@@ -58,110 +58,103 @@ begin
     	mat = Matrix(activity)
 		# Sum across cells for each timepoint
 		summed = sum(mat, dims=2)
+		# calculate 
 		return vec(summed)  # convert to Vector{Float64}
 	end
-
+	
 	#=
-	This function will generate an inital HMM, run EM until convergence, and then compute the forward/backward algorithm to get the posterior distribution. We will later use this to define detected "events".
+	Simple threshold-based detector:
+	  1) Compute mean (μ) and std (σ) of the summed 1D activity.
+	  2) Mark indices where activity > μ + k*σ (default k = 1.5).
+	  3) Group consecutive indices into sequences.
+	  4) Keep sequences with length ≥ min_duration.
+	  5) Merge sequences whose gaps ≤ separation_duration.
 	=#
-	function run_hmm(data::Vector{Float64})
-		# generate init params for an HMM
-		init_dist = [0.5, 0.5]
-		init_trans = [0.95 0.05; 0.05 0.95]
-		init_dists = [Normal(0.0, 1.0), Normal(3.0, 1.0)]
-		init_hmm = HMM(init_dist, init_trans, init_dists)
-
-		# fit model using EM
-		hmm_est, ll_evolve = baum_welch(init_hmm, data)
-
-		# run forward-backward
-		γ, _ = forward_backward(hmm_est, data)
-
-		return γ, hmm_est
+	function detect_sequences_simple(data::Vector{Float64};
+	    k::Float64 = 1.0, min_duration::Int = 30, separation_duration::Int = 100)
+	
+	    μ = mean(data)
+	    σ = std(data)
+	    thr = μ + k * σ
+	
+	    # All indices above threshold
+	    idx = findall(>(thr), data)
+	    isempty(idx) && return Vector{Vector{Int}}()
+	
+	    # Group consecutive indices
+	    groups = Vector{Vector{Int}}()
+	    cur = [idx[1]]
+	    for i in 2:length(idx)
+	        if idx[i] == idx[i-1] + 1
+	            push!(cur, idx[i])
+	        else
+	            push!(groups, cur)
+	            cur = [idx[i]]
+	        end
+	    end
+	    push!(groups, cur)
+	
+	    # Enforce minimum duration
+	    groups = filter(g -> length(g) ≥ min_duration, groups)
+	
+	    # Merge groups that are close in time
+	    merged = Vector{Vector{Int}}()
+	    if !isempty(groups)
+	        acc = groups[1]
+	        for i in 2:length(groups)
+	            if groups[i][1] - acc[end] ≤ separation_duration
+	                acc = vcat(acc, groups[i])
+	            else
+	                push!(merged, acc)
+	                acc = groups[i]
+	            end
+	        end
+	        push!(merged, acc)
+	    end
+	
+	    return merged
 	end
-
-	#=
-	This function does post-hoc analysis on the posterior distribution of the HMM. We use the folowing heuristic to define a "sequence": 1.) Posterior for the hidden state representing high activity must be > 0.95. 2.) Must have consecutive indicies lasting 2.0 second of time (20). Any epochs less than 10.0 second from one another will be merged.
-	=#
-	function classify_sequences(γ::Matrix{Float64}, hmm::HMM; 
-		threshold::Float64 = 0.99, min_duration::Int = 20, separation_duration::Int=100)
-		
-		# Identify which state is the high-activity one
-		means = [mean(d) for d in hmm.dists]
-		high_state = argmax(means)
-	
-		# Get posterior probabilities for high-activity state
-		posterior = γ[high_state,:]
-	
-		# Identify candidate timepoints
-		high_indices = findall(p -> p > threshold, posterior)
-	
-		if isempty(high_indices)
-			return []  # no events found
-		end
-	
-		# Group consecutive indices into sequences
-		sequences = []
-		current_seq = [high_indices[1]]
-	
-		for i in 2:length(high_indices)
-			if high_indices[i] == high_indices[i-1] + 1
-				push!(current_seq, high_indices[i])
-			else
-				push!(sequences, current_seq)
-				current_seq = [high_indices[i]]
-			end
-		end
-		push!(sequences, current_seq)
-	
-		# Filter by minimum duration
-		sequences = filter(seq -> length(seq) ≥ min_duration, sequences)
-	
-		# Merge close sequences (gap ≤ separation_duration)
-		merged = []
-		if !isempty(sequences)
-			curr = sequences[1]
-			for i in 2:length(sequences)
-				if sequences[i][1] - curr[end] ≤ separation_duration
-					curr = vcat(curr, sequences[i])
-				else
-					push!(merged, curr)
-					curr = sequences[i]
-				end
-			end
-			push!(merged, curr)
-		end
-	
-		return merged
-	end
-		
 end
 
 # ╔═╡ 38038914-8fda-4aac-9c37-db518fec2104
 md"## Detect the putative sequences."
 
-# ╔═╡ 84d7d748-2511-4fff-8e19-c5235c17186e
-# results["astroM10_cxtb_accepted_traces.csv"].events
-
 # ╔═╡ 82021d74-86d6-495d-95d9-6fcccc922c21
+# begin
+# 	results = Dict{String, NamedTuple}()
+	
+# 	for (key, val) in named_dfs
+# 	    data = process_df(val)
+# 	    posterior, hmm = run_hmm(data)
+# 	    events = classify_sequences(posterior, hmm)
+	
+# 	    results[key] = (
+# 	        activity = data,
+# 	        posterior = posterior,
+# 	        hmm = hmm,
+# 	        events = events
+# 	    )
+# 	end
+	
+# 	results
+# end
+
 begin
-	results = Dict{String, NamedTuple}()
-	
-	for (key, val) in named_dfs
-	    data = process_df(val)
-	    posterior, hmm = run_hmm(data)
-	    events = classify_sequences(posterior, hmm)
-	
-	    results[key] = (
-	        activity = data,
-	        posterior = posterior,
-	        hmm = hmm,
-	        events = events
-	    )
-	end
-	
-	results
+    results = Dict{String, NamedTuple}()
+
+    for (key, val) in named_dfs
+        data = process_df(val)
+        events = detect_sequences_simple(data; k=1.5, min_duration=30, separation_duration=100)
+
+        results[key] = (
+            activity = data,
+            events = events
+        )
+    end
+
+    results
 end
+
 
 
 # ╔═╡ 9c5061a5-364c-4276-8876-513b1833c66c
@@ -212,7 +205,7 @@ begin
 
 		times = [time_vec[event[1], 1] for event in result]
 		strs = split(animal, "_")
-		event_times[strs[1] * "_" * strs[2]] = times
+		event_times[strs[1] * "_" * strs[2]] = times .+ 10.0
 	end
 end
 
@@ -232,6 +225,36 @@ begin
 
 	# Save dict
 	CSV.write(joinpath(ddir, "event_times.csv"), df)
+end
+
+# ╔═╡ c1923d61-c07b-41c6-800c-f029371fd169
+md"## Save the detected sequences to a vector 1/0s"
+
+# ╔═╡ 3b4eeb8a-a193-4bd8-87c2-a97914661628
+begin
+    for (key, val) in named_dfs
+        data = results[key].activity
+        events = results[key].events
+        
+        # Initialize binary vector with zeros
+        binary_vec = zeros(Int, length(data))
+        
+        # Set indices with detected events to 1
+        for event_seq in events
+            for idx in event_seq
+                binary_vec[idx] = 1
+            end
+        end
+        
+        # Create filename from original file key
+        filename = replace(key, ".csv" => "_events_binary.csv")
+        
+        # Save individual binary vector
+        df_single = DataFrame(binary = binary_vec)
+        CSV.write(joinpath(ddir, filename), df_single)
+    end
+    
+    "Binary vectors saved successfully"
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -1648,7 +1671,6 @@ version = "1.8.1+0"
 # ╟─14eb3517-90e8-4010-9cfa-7fe7b1412dd4
 # ╠═1feb1da4-bfc5-43f3-8b79-dd34b97a1eae
 # ╟─38038914-8fda-4aac-9c37-db518fec2104
-# ╠═84d7d748-2511-4fff-8e19-c5235c17186e
 # ╠═82021d74-86d6-495d-95d9-6fcccc922c21
 # ╠═9c5061a5-364c-4276-8876-513b1833c66c
 # ╠═dedf52e8-5d39-4ce5-9cd8-1d04ae7e8d72
@@ -1656,5 +1678,7 @@ version = "1.8.1+0"
 # ╠═581f10d1-b8e3-4296-b9ed-93ff982fc9d9
 # ╟─a5c99537-1bef-43d1-bbe3-e466a2af85f3
 # ╠═57f4fbfa-7c8b-4ed0-8c89-c27ef6b91213
+# ╟─c1923d61-c07b-41c6-800c-f029371fd169
+# ╠═3b4eeb8a-a193-4bd8-87c2-a97914661628
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
