@@ -349,6 +349,7 @@ def cosine_similarity_matrix(arr, time, cmap, seq_times=[120, 180, 240, 300]):
     time: array of timestamps
     returns: N x N array of cosine similarity
     """
+    sns.set_theme(context="talk", style="white")
     # Ensure time is a numpy array
     time = np.array(time)
 
