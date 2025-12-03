@@ -5,7 +5,7 @@ with open('/Users/suthardr/Desktop/collection_fc_allmice.pkl', 'rb') as f:
     collection_fc = pickle.load(f)
 
 #%%
-traces = collection_fc.animals['astroF9'].accepted_traces.to_numpy()
+traces = collection_fc.animals['astroM4'].accepted_traces.to_numpy()
 traces = traces[:3603, :].T
 #%%
  cd /Users/suthardr/Desktop/png_frames_fc_color
@@ -18,11 +18,11 @@ matplotlib.use("Agg")   # offscreen rendering for PNGs
 import matplotlib.pyplot as plt
 from moviepy.editor import VideoFileClip
 
-behavior_video_path = "/Users/suthardr/Desktop/video_fc/Astro_F9_FC.avi"
-output_dir = "/Users/suthardr/Desktop/png_frames_fc_color_time0"
+behavior_video_path = "/Users/suthardr/Desktop/video_fc/Astro_4_FC_Video.avi"
+output_dir = "/Users/suthardr/Desktop/video_fc/png_frames_fc_m4"
 
 fs = 10.0          # calcium sampling rate (Hz)
-t_start = 0.0    # calcium window start (s)
+t_start = 115.0    # calcium window start (s)
 t_end   = 145.0    # calcium window end (s)
 
 n_cells, n_timepoints = traces.shape
