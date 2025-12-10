@@ -1,15 +1,15 @@
 #%%
 
 import pickle
-with open('/Users/suthardr/Desktop/collection_cxtb_allmice.pkl', 'rb') as f:
+with open('/Users/suthardr/Desktop/collection_fc_allmice.pkl', 'rb') as f:
     collection_fc = pickle.load(f)
 
 #%%
 traces = collection_fc.animals['astroF9'].accepted_traces.to_numpy()
 traces = traces[:3603, :].T
 #%%
- cd /Users/suthardr/Desktop/png_frames_fc_color
-ffmpeg -framerate 14 -i frame_%05d.png -vcodec mpeg4 -q:v 2 ../Astro_F9_FC_Colorful.mp4
+ cd /Users/suthardr/Desktop/Revision/video_cxtb/CxtB_F9_behavior
+ffmpeg -framerate 14 -i frame_%05d.png -vcodec mpeg4 -q:v 2 ../Astro_F9_CxtB_behavior.mp4
 #%%THSI WORKS
 import os
 import numpy as np
@@ -157,17 +157,12 @@ matplotlib.use("Agg")   # offscreen rendering for PNGs
 import matplotlib.pyplot as plt
 from moviepy.editor import VideoFileClip
 
-behavior_video_path = "/Users/suthardr/Desktop/video_cxtb/Astro_F9_CtxB_03202025.avi"
-output_dir = "/Users/suthardr/Desktop/video_cxtb/CxtB_F9_behavior"
+behavior_video_path = "/Users/suthardr/Desktop/video_fc/Astro_F9_FC.avi"
+output_dir = "/Users/suthardr/Desktop/video_fc/png_frames_fc_F9_behavior"
 
 fs = 10.0          # calcium sampling rate (Hz)
-t_start = 90.0     # calcium window start (s)
-t_end   = 165.0    # calcium window end (s)
-
-# ----------------------- PARAMETERS -----------------------
-fs = 10.0          # calcium sampling rate (Hz)
-t_start = 90.0     # calcium window start (s)
-t_end   = 165.0    # calcium window end (s)
+t_start = 115.0     # calcium window start (s)
+t_end   = 195.0    # calcium window end (s)
 
 # -----------------------------------------------------------
 #             LOAD CALCIUM DATA INTO traces, time_ca
@@ -301,8 +296,8 @@ for k in range(n_frames):
     ax_tr.plot(time_ca, tr_plot.T, lw=0.7, alpha=0.25, color="black")
 
     # event markers (if you want them)
-    ax_tr.axvline(91.73609267, color="black", lw=1, linestyle="--")
-    ax_tr.axvline(134.9023421	,  color="black", lw=1, linestyle="--")
+    ax_tr.axvline(120, color="black", lw=1, linestyle="--")
+    ax_tr.axvline(180,  color="black", lw=1, linestyle="--")
 
     # time cursor
     ax_tr.axvline(time_ca[trace_idx], color="red", lw=1)

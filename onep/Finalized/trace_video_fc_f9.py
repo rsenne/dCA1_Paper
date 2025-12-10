@@ -18,12 +18,12 @@ matplotlib.use("Agg")   # offscreen rendering for PNGs
 import matplotlib.pyplot as plt
 from moviepy.editor import VideoFileClip
 
-behavior_video_path = "/Users/suthardr/Desktop/video_fc/Astro_4_FC_Video.avi"
-output_dir = "/Users/suthardr/Desktop/video_fc/png_frames_fc_m4"
+behavior_video_path = "/Users/suthardr/Desktop/video_fc/Astro_F9_FC.avi"
+output_dir = "/Users/suthardr/Desktop/video_fc/png_frames_fc_F9_behavior"
 
 fs = 10.0          # calcium sampling rate (Hz)
 t_start = 115.0    # calcium window start (s)
-t_end   = 145.0    # calcium window end (s)
+t_end   = 195.0    # calcium window end (s)
 
 n_cells, n_timepoints = traces.shape
 time_ca = np.arange(n_timepoints) / fs
@@ -45,6 +45,20 @@ offsets = np.arange(tr.shape[0])[:, None]
 tr_plot = tr + offsets
 
 ymin, ymax = -1, tr_plot.shape[0] + 1
+
+# -----------------------------------------------------------
+#                 LOAD FREEZING DATA
+# -----------------------------------------------------------
+animal = collection_fc.animals['astroF9']
+time_freeze = np.asarray(animal.Timestamps, dtype=float)
+freeze      = np.asarray(animal.freeze_vector, dtype=float)
+
+# slice to window
+mask = (time_freeze >= t_start) & (time_freeze <= t_end)
+time_freeze_win = time_freeze[mask]
+freeze_win      = freeze[mask]
+
+print(f"Freezing samples inside window: {time_freeze_win.size}")
 
 # LOAD BEHAVIOR VIDEO
 clip = VideoFileClip(behavior_video_path)
