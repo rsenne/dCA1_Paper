@@ -5,7 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 __all__ = ["bci", "tci", "eta_significance", "raster_plot", "plot_whole_eta", 'eta_individual_cells', 'eta_averaged',
-           'eta_individual_cells_ci', 'plot_rep_cells']
+           'eta_individual_cells_ci', 'plot_rep_cells', 'eta_individual_cells_post_only']
 
 def plot_rep_cells(data):
     # Plot all cells for desired animal, session
@@ -161,6 +161,7 @@ def eta_individual_cells(data, timestamps, events=None, window=10, ax=None, **kw
     time = np.linspace(-window / 2, window, number_of_indices)
 
     return across_eta_, time
+
     # # Make a figure
     # if ax is None:
     #     fig, ax = plt.subplots(len(across_eta_), 1, sharex='col', figsize=(4, 60))
@@ -184,6 +185,42 @@ def eta_individual_cells(data, timestamps, events=None, window=10, ax=None, **kw
 
 # Example usage:
 # ax, across_eta_, time = eta_individual_cells(data=concat_a, timestamps=timestamps_a, events=[[120,180,240,300],], window=10)
+
+def eta_individual_cells_post_only(data, timestamps, events=None, window=10, ax=None, **kwargs):
+    # Event-triggered average for all cells plotted individually
+    # Post-event window only: 0 → window
+
+    number_of_indices = int(window * 10)
+
+    def event_interpolation(data, events_):
+        interp = scipy.interpolate.interp1d(
+            timestamps, data, kind='cubic',
+            bounds_error=False, fill_value="extrapolate"
+        )
+
+        within_eta_ = np.zeros((len(events_), number_of_indices))
+
+        for i, event in enumerate(events_):
+            time_period = np.linspace(event, event + window, number_of_indices)
+            time_period = np.clip(time_period, timestamps.min(), timestamps.max())
+            within_eta_[i] = interp(time_period)
+
+        return np.mean(within_eta_, axis=0)
+
+    across_eta_ = np.zeros((len(data), number_of_indices))
+
+    if events is not None and len(events) == 1:
+        events = events * len(data)
+
+    for j, curve in enumerate(data):
+        if events is not None:
+            across_eta_[j] = event_interpolation(curve, events[j])
+        else:
+            across_eta_[j] = event_interpolation(curve, [timestamps.mean()])
+
+    time = np.linspace(0, window, number_of_indices)
+
+    return across_eta_, time
 
 def eta_averaged(data, timestamps, events=None, window=10, ci='bci', sig_duration=8, ax=None, **kwargs):
     # Event-triggered average for all cells plotted together for data provided
