@@ -1,9 +1,8 @@
 import sys
-import numpy
 from scipy.stats import zscore
 sys.path.extend(['/Users/amonast/Documents/GitHub/dCA1_paper'])
 import onep.onephoton as onep
-from onep.cell_registration import CellReg
+from onep.Old_Analyses.cell_registration import CellReg
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from trace_analysis_functions import eta_individual_cells
