@@ -71,7 +71,7 @@ begin
 	  5) Merge sequences whose gaps ≤ separation_duration.
 	=#
 	function detect_sequences_simple(data::Vector{Float64};
-	    k::Float64 = 1.0, min_duration::Int = 30, separation_duration::Int = 100)
+	    k::Float64 = 1.0, min_duration::Int = 20, separation_duration::Int = 100)
 	
 	    μ = mean(data)
 	    σ = std(data)
