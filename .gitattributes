@@ -1,2 +1,24 @@
-# Auto detect text files and perform LF normalization
+# Source stays LF-normalised in the repository.
 * text=auto
+
+# --- Data files: never touch the bytes -------------------------------------
+# Line-ending normalisation would (a) change checksums between Windows and
+# macOS clones, breaking `python scripts/verify_data.py`, and (b) silently
+# rewrite any field that legitimately contains CR. Committed data is stored
+# byte-for-byte as produced by the analysis.
+data/processed/** -text
+*.npy  binary
+*.pkl  binary
+*.mat  binary
+*.h5   binary
+*.hdf5 binary
+*.tif  binary
+*.tiff binary
+
+# --- Notebooks -------------------------------------------------------------
+# Keep LF and mark as text so GitHub renders them, but suppress the useless
+# line-by-line diff of base64 output blobs.
+*.ipynb text eol=lf diff=jupyter
+
+# Julia environment files
+*.toml text eol=lf

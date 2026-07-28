@@ -1,0 +1,25 @@
+# Conda environment for reproducing the dCA1 astrocyte paper analyses.
+#
+#   conda env create -f environment.yml
+#   conda activate dca1
+#   python scripts/verify_data.py
+#
+# Packages with compiled dependencies come from conda-forge; the rest are
+# resolved by pip from pyproject.toml, which is the single source of truth
+# for version constraints.
+name: dca1
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip>=23
+  # Pulled from conda-forge because the wheels are fussy to build:
+  - numpy>=1.24,<2.0
+  - scipy>=1.10,<2.0
+  - pandas>=2.0,<3.0
+  - matplotlib>=3.7,<4.0
+  - h5py>=3.9
+  - scikit-image>=0.21
+  - pip:
+      # Installs onep plus all optional extras (see pyproject.toml).
+      - -e .[all]

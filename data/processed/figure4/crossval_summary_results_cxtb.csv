@@ -1,0 +1,9 @@
+animal,spearman_rho,shuffle_null_mean,shuffle_null_std,shuffle_z,context,n_cells,p_obs_parametric,p_empirical,hist_path,sex
+astroF10,0.2868261024268334,-0.00399098,0.2784365934457452,1.0444643039419244,CxtB,14,0.3201034099210327,0.3188681131886811,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroF10_CxtB.svg,F
+astroF3,-0.714285714,0.002407143,0.4100800093413554,-1.747690306,CxtB,7,0.071343561,0.089591041,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroF3_CxtB.svg,F
+astroF5,0.4268372033233729,0.003859828,0.3350359382764921,1.2624835939842778,CxtB,10,0.2186166141125521,0.2247775222477752,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroF5_CxtB.svg,F
+astroF9,0.055199784,0.000942791,0.1008989441681049,0.5377359872268501,CxtB,101,0.5835105657791197,0.587041296,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroF9_CxtB.svg,F
+astroM10,-0.15633238,-0.000579234,0.1896678350837422,-0.821189031,CxtB,29,0.4180314380101639,0.4162583741625837,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroM10_CxtB.svg,M
+astroM6,0.031747208,0.000546753,0.1180015382355735,0.2644071928099419,CxtB,74,0.7883005885997042,0.7903209679032097,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroM6_CxtB.svg,M
+astroM7,0.1374470432476571,-0.000454183,0.1079998673009827,1.2768647749196949,CxtB,88,0.201601455,0.2060793920607939,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroM7_CxtB.svg,M
+astroM8,-0.237070325,0.000822531,0.1073043297352101,-2.216992138,CxtB,87,0.027044016,0.02659734,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroM8_CxtB.svg,M
