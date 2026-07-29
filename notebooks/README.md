@@ -1,73 +1,73 @@
 # Notebooks
 
-Organised by **role**, not by author. The figure map with per-notebook data
-dependencies is in the [root README](../README.md#figure-map).
+| Folder | Contents |
+|---|---|
+| `figures/` | main paper figures |
+| `supplementary/` | supplemental figures and statistics |
+| `preprocessing/` | rebuilding processed data from raw imaging |
 
-| Folder | Purpose | Needs tier-2 data? |
-|---|---|---|
-| [figures/](figures/) | Main paper figures (Fig 1–4) | Mostly no |
-| [supplementary/](supplementary/) | Supplemental figures and statistics | Some |
-| [preprocessing/](preprocessing/) | Rebuilding processed data from raw imaging | Yes |
+The figure-to-notebook map, including which data tier each one needs and
+whether it currently runs, is in the [root README](../README.md#figures).
 
-## Before you run anything
+## Running them
 
 ```bash
-pip install -e .              # from the repo root
-python -m onep.paths          # confirm data + output locations resolve
+pip install -e .        # from the repo root
+python -m onep.paths    # check what resolves on this machine
 ```
 
-## Conventions
-
-Notebooks read and write through [`onep.paths`](../onep/paths.py). There are no
-absolute paths anywhere in this tree, and nothing writes to a Desktop.
-
-```python
-import pandas as pd
-from onep import paths
-
-df = pd.read_csv(paths.processed("figure3", "Num_Detected_Events.csv"))
-
-fig.savefig(paths.figure_path("figure3", "num_events.svg"))   # -> results/figures/figure3/
-```
-
-Useful helpers:
+Paths go through `onep.paths`:
 
 | Call | Returns |
 |---|---|
-| `paths.processed(*parts)` | File in `data/processed`, erroring with a directory listing if absent |
-| `paths.collection(session)` | Tier-2 pickle for `hab` / `fc` / `cxta` / `cxtb` |
-| `paths.traces(animal, session)` | Tier-2 per-animal trace CSV |
-| `paths.figure_path(*parts)` | Output path under `results/figures`, parent dirs created |
-| `paths.data_root(required=False)` | Tier-2 root, or `None` — for graceful degradation |
+| `paths.processed(*parts)` | file in `data/processed`; on a miss, lists what's actually there |
+| `paths.collection(session)` | `hab` / `fc` / `cxta` / `cxtb` pickle (imaging tier) |
+| `paths.traces(animal, session)` | per-animal trace CSV (imaging tier) |
+| `paths.figure_path(*parts)` | output path under `results/figures`, parents created |
+| `paths.data_root(required=False)` | imaging tier root, or `None` |
 
-Notebooks that need tier-2 data should fail with a clear message rather than a
-`FileNotFoundError` deep inside pandas:
+For a notebook that needs the imaging tier, fail early and clearly:
 
 ```python
 if paths.data_root(required=False) is None:
-    raise RuntimeError(
-        "This notebook needs the upstream dataset; see data/README.md. "
-        "The figure it produces is also reproducible from data/processed."
-    )
+    raise RuntimeError("Needs the imaging dataset; see data/README.md")
 ```
 
-## Outputs are kept
+## Outstanding work
 
-Executed outputs are intentionally committed for the notebooks in `figures/`
-and `supplementary/`: they record what correct output looks like for a paper
-repo. This does mean notebook diffs are noisy. If you want clean diffs locally:
+Eight supplementary notebooks and all four preprocessing notebooks still
+contain absolute paths from the machines they were written on
+(`/Users/suthardr/Desktop/...`, `C:\Users\ryansenne\Desktop\Dill\...`). They
+have not been migrated to `onep.paths` and have not been re-run. To migrate one:
+
+1. Replace each path literal with the matching `paths.*` call.
+2. Run it top to bottom in a fresh kernel.
+3. Update the "Runs" column in the root README.
+
+Watch for two problems that showed up in the notebooks already migrated:
+
+- **Kernel-state leakage.** Several notebooks referenced names that were never
+  imported anywhere in the file (`ttest_rel`, `_HAS_PG`) and only worked because
+  the author's kernel had them from an earlier session. A fresh-kernel run is
+  the only way to catch this.
+- **Split string literals.** `("/long/path/" "rest.csv")` uses implicit
+  concatenation; replacing only the first half silently breaks the expression.
+- **`paths.*` returns `Path`, not `str`.** Code that did `save_path.split('.')`
+  to get a file extension breaks. Use `str(save_path)` or `save_path.suffix`.
+  Passing a `Path` to `savefig`, `read_csv`, or `open` is fine.
+
+And one rule: **never write into `data/processed`.** It is the committed,
+checksummed input tier. Derived tables belong in `results/` via
+`paths.figure_path(...)`. If `verify_data.py` reports `CHANGED`, a notebook has
+overwritten committed data — restore it with `git checkout -- data/processed`.
+
+## Outputs
+
+Executed outputs are committed for `figures/` and `supplementary/` as a record
+of expected output, which makes diffs noisy. For clean diffs locally:
 
 ```bash
-pip install nbstripout      # included in the [dev] extra
-nbstripout --install        # opt-in, per-clone; do not commit stripped figures
+pip install nbstripout && nbstripout --install
 ```
 
-Notebooks under [../archive/](../archive/) have already had their outputs
-stripped, since they are kept only for provenance.
-
-## Execution order
-
-`figures/` and `supplementary/` notebooks are independent — run them in any
-order. `preprocessing/` is a pipeline; see the
-[preprocessing section of the root README](../README.md#preprocessing-pipeline)
-for the correct sequence.
+Notebooks in `../archive/` already have outputs stripped.
