@@ -113,11 +113,22 @@ and completed without error.
 | `Figure_2_peak_props` | processed | no | mixed-effects model of peak properties |
 | `Hab_Figure` | imaging | no | habituation session |
 
-**"partly"** — these two are migrated and run for many cells but the full run
-was not confirmed end-to-end. `Fig4` previously failed on
-`KeyError: ['sex']`, because it read a committed summary table that has no
-`sex` column; it now regenerates its own summary into `results/` first, which
-should resolve it, but that has not been re-verified.
+**"partly"** — both are migrated to `onep.paths` and execute past the stage that
+previously failed, but a full end-to-end run has not been confirmed.
+
+They failed on `KeyError: ['sex']`: the code builds its summary tables without a
+`sex` column, then later selects on one, so the notebooks only ever ran in a
+kernel where it had been added by hand. Sex is encoded in the animal ID, so it
+is now derived where each summary is assembled:
+
+```python
+df['sex'] = df['animal'].str.extract(r'astro([FM])', expand=False)
+```
+
+This reproduces the `sex` column of the committed
+`figure3/crossval_summary_results_cxta.csv` exactly on all 11 rows. Confirming
+the rest of the run needs the imaging tier, which was offline when this was
+written — re-run both once the share is mounted and change these to "yes".
 
 **"no"** — these eleven still contain absolute paths from the machines they were
 written on. They have not been migrated to `onep.paths` and have not been run.
