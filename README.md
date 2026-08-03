@@ -36,13 +36,18 @@ archive/               superseded analyses, kept for provenance
 
 ## Data
 
-Three tiers. Only the first is in git.
+Four tiers. Only the first is in git; the next two are in the Zenodo deposit.
 
 | Tier | Contents | Size | Where |
 |---|---|---|---|
 | Processed | per-figure summary tables, UMAP embeddings, model output | 26 MB | `data/processed/` (42 files) |
-| Imaging | session collections (`*.pkl`), Inscopix cell traces | ~940 MB | lab share |
-| Raw | `.isxd` movies, CellReg output, behaviour video | tens of GB | lab share |
+| Imaging | session collections (`*.pkl`), Inscopix cell traces | ~820 MB | Zenodo / lab share |
+| Intermediates | per-animal trace exports, event times, freeze vectors, DLC pose | ~510 MB | Zenodo / lab share |
+| Raw | `.isxd` movies, CellReg output, behaviour video | tens of GB | lab share only |
+
+The intermediates tier is regenerable — `scripts/Export_Files_Rui.py` plus the
+Julia detector produce it from the collections — but it is shipped so the
+supplementary analyses that read it can be run without redoing detection.
 
 `data/processed` has a checksum manifest:
 
@@ -58,10 +63,27 @@ export DCA1_DATA_ROOT=/path/to/dCA1_Clean_Data
 ```
 
 or copy `config.example.ini` to `config.ini` and set `data_root`. The Ramirez
-lab mounts are detected automatically, including the `\nas1.bu.edu` UNC path,
+lab mounts are detected automatically, including the `\\nas1.bu.edu` UNC path,
 which keeps working when the `Z:` mapping drops off VPN.
 
+The intermediates tier is found automatically at
+`<data root>/Derived_Exports`; override with `DCA1_INTERMEDIATES` or the
+`intermediates` key in `config.ini`.
+
 Per-file provenance is in [data/README.md](data/README.md).
+
+### Publishing
+
+`scripts/build_zenodo_archive.py` packages the imaging and intermediates tiers,
+plus a snapshot of this repository, as five zips with a checksum manifest and
+Zenodo metadata:
+
+```bash
+python scripts/build_zenodo_archive.py --dry-run
+python scripts/build_zenodo_archive.py --out /path/to/staging
+```
+
+It uploads nothing. Record the DOI here and in `data/README.md` once published.
 
 ## Paths
 
@@ -71,12 +93,14 @@ machine:
 ```python
 from onep import paths
 
-pd.read_csv(paths.processed("figure3", "Num_Detected_Events.csv"))
-pickle.load(open(paths.collection("fc"), "rb"))
-fig.savefig(paths.figure_path("figure3", "num_events.svg"))
+pd.read_csv(paths.processed("figure3", "Num_Detected_Events.csv"))   # in-repo
+pickle.load(open(paths.collection("fc"), "rb"))                      # imaging
+pd.read_csv(paths.intermediate("fc_traces_csv", "time.csv"))         # intermediates
+fig.savefig(paths.figure_path("figure3", "num_events.svg"))          # output
 ```
 
-`python -m onep.paths` prints what resolves on your machine.
+`python -m onep.paths` prints all four locations as they resolve on your
+machine, so a missing tier is obvious before a notebook fails.
 
 ## Figures
 
@@ -117,20 +141,21 @@ and completed without error.
 All eight main figures and six of the supplementals are verified: **14 notebooks
 run clean, producing 228 figure files.**
 
-**"no"** — these six still read from a personal working directory
-(`C:\Users\ryansenne\Desktop\Dill`) that exists on one machine. They are not
-broken, but they are not portable, so they have not been migrated to
-`onep.paths` or run here.
+**"no"** — these six read the intermediates tier, and each still contains
+absolute paths to the machine it was written on
+(`C:\Users\ryansenne\Desktop\Dill`). They are not broken — they run there — but
+they are not portable, so they have not been migrated to `onep.paths` or
+executed here, and no claim is made that they reproduce as shipped.
 
-They need a fourth data location the other tiers don't cover: derived trace
-exports (`{animal}_{session}_accepted_traces.csv`, `time.csv`, `event_times.csv`,
-`freeze_vec_cxt_{a,b}.csv`) produced by
-[scripts/Export_Files_Rui.py](scripts/Export_Files_Rui.py) and the Julia
-detector. That is ~360 MB of regenerable intermediates, so it belongs alongside
-the imaging tier rather than in git, reached through a new
-`paths.intermediates()` resolver. Migrating them is the main outstanding work;
-[notebooks/README.md](notebooks/README.md) documents the procedure and the four
-failure modes found while migrating the others.
+The data they need **is** published: the intermediates tier is in the Zenodo
+deposit, and `paths.intermediates()` resolves it. What remains is mechanical —
+replace each path literal with a `paths.intermediate(...)` call and run the
+notebook in a fresh kernel. [notebooks/README.md](notebooks/README.md) has the
+procedure and the four failure modes that came up migrating the other fourteen.
+
+They are kept as-is rather than half-migrated on the reasoning that a notebook
+which visibly points at someone's Desktop is honest about needing work, whereas
+one that looks portable but was never run is not.
 
 ## Preprocessing
 

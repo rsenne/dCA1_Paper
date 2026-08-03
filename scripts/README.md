@@ -5,8 +5,8 @@ Run from the repo root with the package installed (`pip install -e .`).
 | Script | Purpose | Needs |
 |---|---|---|
 | `verify_data.py` | verify or regenerate the `data/processed` checksum manifest | — |
-| `build_zenodo_archive.py` | stage the imaging tier for a Zenodo deposit | imaging |
-| `Export_Files_Rui.py` | export per-animal accepted traces to CSV as input to the peak-time model | imaging |
+| `build_zenodo_archive.py` | package data + code as zips for a Zenodo deposit | imaging, intermediates |
+| `Export_Files_Rui.py` | export per-animal accepted traces; produces the intermediates tier | imaging |
 | `trace_video_fc_f9.py` | render the FC trace + behaviour movie for F9 | imaging + video, `[video]` |
 | `trace_video_cxta_f9.py` | same for recall context A | imaging + video, `[video]` |
 | `spatial_timemaps.py` | spatial time-map analysis | imaging |
@@ -26,11 +26,18 @@ python scripts/verify_data.py --check-upstream        # is the imaging tier reac
 
 python scripts/build_zenodo_archive.py --dry-run      # what would be deposited
 python scripts/build_zenodo_archive.py --out /path/to/staging
+python scripts/build_zenodo_archive.py --out /path --only code   # code archive alone
+
+python scripts/Export_Files_Rui.py --session fc       # regenerate trace exports
 ```
 
-`build_zenodo_archive.py` only stages files locally — it uploads nothing. It
-writes `MANIFEST.sha256`, a deposit `README.md`, and `zenodo_metadata.json`
-alongside the data. Review the staging directory before depositing; a published
+`build_zenodo_archive.py` builds five zips — the four session collections, the
+per-animal cell traces, the derived intermediates, the behaviour scores, and a
+`git ls-files` snapshot of the repository at HEAD — plus `MANIFEST.sha256`, a
+deposit `README.md`, and `zenodo_metadata.json`. It excludes `bad_donotuse/`,
+`Summary_Images/` and similar scratch directories, and reports what it skipped.
+
+It uploads nothing. Review the staging directory before depositing; a published
 Zenodo DOI cannot be withdrawn.
 
 ## Caveats

@@ -3,11 +3,13 @@
 | Tier | Contents | Size | In git? |
 |---|---|---|---|
 | Processed | per-figure summary tables and arrays | 26 MB | yes, `processed/` |
-| Imaging | session collections + Inscopix cell traces | ~940 MB | no — lab share / Zenodo |
-| Raw | `.isxd` movies, CellReg output, behaviour video | tens of GB | no — lab share |
+| Imaging | session collections + Inscopix cell traces | ~820 MB | no — Zenodo / lab share |
+| Intermediates | trace exports, event times, freeze vectors, DLC pose | ~510 MB | no — Zenodo / lab share |
+| Raw | `.isxd` movies, CellReg output, behaviour video | tens of GB | no — lab share only |
 
-The published figures are plotted from the processed tier alone. The other two
-are only needed to rebuild it.
+Most published figures are plotted from the processed tier alone. The imaging
+tier is needed by the cross-validated sequence figures; the intermediates tier
+by six supplementary analyses.
 
 ## Verifying
 
@@ -110,16 +112,20 @@ artefacts of it; the notebook that produced them (`analysis.ipynb`) was removed
 and is recoverable from git (see [../archive/README.md](../archive/README.md)).
 No current figure uses them.
 
-## The imaging tier
+## The imaging and intermediates tiers
 
 Layout `onep.paths` expects:
 
 ```
 dCA1_Clean_Data/
-├── Dill/collection_{hab,fc,cxta,cxtb}_allmice.pkl    52 / 198 / 124 / 89 MB
-├── Cell_Traces/{animal}_traces/{animal}_{session}_traces.csv     ~474 MB
-├── CellReg/{animal}_FOV1/
-└── Anymaze/
+├── Dill/collection_{hab,fc,cxta,cxtb}_allmice.pkl    50 / 189 / 119 / 85 MB
+├── Cell_Traces/{animal}_traces/{animal}_{session}_traces.csv     ~375 MB
+├── Anymaze/{session}_freezing.csv
+├── CellReg/{animal}_FOV1/                            (raw tier)
+└── Derived_Exports/                                  intermediates tier
+    ├── {session}_traces_csv/   accepted traces, event_times, freeze vectors
+    ├── dlc/                    DeepLabCut pose output
+    └── Time.csv
 ```
 
 Sessions: `hab`, `fc`, `cxta`, `cxtb`. Animals: `astroF3`, `astroM3`, … (F/M =
@@ -128,20 +134,44 @@ sex).
 ```python
 from onep import paths
 
-paths.collection("fc")            # Dill/collection_fc_allmice.pkl
-paths.traces("astroF9", "cxta")   # Cell_Traces/astroF9_traces/astroF9_cxta_traces.csv
-paths.data_root(required=False)   # None if unavailable
+paths.collection("fc")                                  # Dill/collection_fc_allmice.pkl
+paths.traces("astroF9", "cxta")                         # Cell_Traces/...
+paths.intermediate("fc_traces_csv", "event_times.csv")  # Derived_Exports/...
+paths.data_root(required=False)                         # None if unavailable
+paths.intermediates(required=False)                     # None if unavailable
 ```
 
-Set `DCA1_DATA_ROOT` or `data_root` in `config.ini`. Ramirez lab mounts are
-detected automatically.
+Set `DCA1_DATA_ROOT` for the imaging tier and, if it lives outside
+`<data root>/Derived_Exports`, `DCA1_INTERMEDIATES` for the intermediates. Both
+also take a key in `config.ini`. Ramirez lab mounts are detected automatically,
+including the `\\nas1.bu.edu` UNC path.
 
-### Publishing it
+`Derived_Exports/` is regenerable:
+`python scripts/Export_Files_Rui.py --session fc` (and `cxta`/`cxtb`/`hab`) for
+the trace exports, then the Pluto notebook in [../julia/](../julia/) for the
+event times.
 
-`python scripts/build_zenodo_archive.py --dry-run` stages this tier for a
-Zenodo deposit (23 files, 566 MB compressed: collections, per-animal trace
-tarballs, freezing scores, checksums, and metadata). Record the DOI here and in the root README
-once published.
+### Publishing
+
+`scripts/build_zenodo_archive.py` packages both tiers plus a snapshot of the
+repository as five zips, with a checksum manifest, a deposit README, and
+`zenodo_metadata.json`:
+
+| Archive | Contents |
+|---|---|
+| `dca1_code_<sha>.zip` | the repository at HEAD, including `data/processed` |
+| `dca1_collections.zip` | the four session collections |
+| `dca1_cell_traces.zip` | per-animal Inscopix trace exports |
+| `dca1_derived_intermediates.zip` | the intermediates tier |
+| `dca1_behavior.zip` | AnyMaze freezing scores |
+
+```bash
+python scripts/build_zenodo_archive.py --dry-run
+python scripts/build_zenodo_archive.py --out /path/to/staging
+python scripts/build_zenodo_archive.py --out /path --only code   # code alone
+```
+
+It uploads nothing. Record the DOI here and in the root README once published.
 
 ### Archived intermediates
 

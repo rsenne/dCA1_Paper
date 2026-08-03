@@ -51,6 +51,8 @@ __all__ = [
     "resolve",
     "collection",
     "traces",
+    "intermediates",
+    "intermediate",
     "figures_dir",
     "figure_path",
     "describe",
@@ -226,6 +228,98 @@ def traces(animal: str, session: str, required: bool = True) -> Path:
 
 
 # --------------------------------------------------------------------------
+# Derived intermediates
+# --------------------------------------------------------------------------
+
+# Candidate locations for the derived trace-export tree, tried in order.
+_KNOWN_INTERMEDIATE_ROOTS = (
+    "C:/Users/ryansenne/Desktop/Dill",
+    "~/Desktop/Dill",
+)
+
+# A valid intermediates root contains at least one of these.
+_INTERMEDIATE_MARKERS = ("fc_traces_csv", "cxta_traces_csv", "cxtb_traces_csv",
+                         "hab_traces_csv")
+
+
+def _looks_like_intermediates(path: Path) -> bool:
+    return path.is_dir() and any((path / m).is_dir() for m in _INTERMEDIATE_MARKERS)
+
+
+def intermediates(required: bool = True) -> Path | None:
+    """Locate the derived trace-export tree.
+
+    This is a fourth location, distinct from :func:`data_root`: per-animal
+    ``*_accepted_traces.csv``, ``time.csv``, ``event_times.csv`` and
+    ``freeze_vec_cxt_*.csv`` files, grouped into ``{session}_traces_csv/``
+    directories, plus DeepLabCut output under ``dlc/``.
+
+    They are produced by ``scripts/Export_Files_Rui.py`` and the Julia
+    sequence detector, so they are regenerable and not committed. Several
+    supplementary notebooks read them.
+
+    Resolution order: ``DCA1_INTERMEDIATES`` environment variable,
+    ``intermediates`` in ``config.ini``, then known locations. A candidate
+    only counts if it actually contains a ``*_traces_csv`` directory, so a
+    stale setting is reported rather than silently used.
+    """
+    candidates: list[str] = []
+
+    env = os.environ.get("DCA1_INTERMEDIATES")
+    if env:
+        candidates.append(env)
+
+    configured = _from_config("intermediates")
+    if configured:
+        candidates.append(configured)
+
+    candidates.extend(_KNOWN_INTERMEDIATE_ROOTS)
+
+    # The Zenodo deposit extracts to <data_root>/Derived_Exports.
+    root = data_root(required=False)
+    if root is not None:
+        candidates.append(str(root / "Derived_Exports"))
+
+    for candidate in candidates:
+        path = Path(candidate).expanduser()
+        if _looks_like_intermediates(path):
+            return path
+
+    if not required:
+        return None
+
+    tried = "\n  ".join(candidates) or "(none)"
+    raise FileNotFoundError(
+        "Could not locate the derived trace exports.\n"
+        "These are needed by the sequence, cosine-similarity, freezing and\n"
+        "habituation supplementary notebooks. They are not required for any\n"
+        "main figure.\n\n"
+        "Either regenerate them:\n"
+        "  python scripts/Export_Files_Rui.py --session fc   (and cxta/cxtb/hab)\n"
+        "then run the Julia detector in julia/ for the event times; or download\n"
+        "dca1_derived_intermediates.zip from the Zenodo deposit and set:\n"
+        "  export DCA1_INTERMEDIATES=/path/to/extracted\n\n"
+        f"Locations tried:\n  {tried}\n\n"
+        "A directory only counts if it contains a *_traces_csv subdirectory."
+    )
+
+
+def intermediate(*parts: str, required: bool = True) -> Path:
+    """Resolve a path under :func:`intermediates`."""
+    target = intermediates().joinpath(*parts)
+    if required and not target.exists():
+        parent = target.parent
+        if parent.is_dir():
+            available = sorted(p.name for p in parent.iterdir())[:20]
+            hint = "\n  ".join(available) or "(empty)"
+            raise FileNotFoundError(
+                f"{target} does not exist.\nPresent in {parent}:\n  {hint}"
+            )
+        raise FileNotFoundError(f"{target} does not exist ({parent} is missing).")
+    return target
+
+
+# --------------------------------------------------------------------------
 # Figure output
 # --------------------------------------------------------------------------
 
@@ -259,12 +353,14 @@ def figure_path(*parts: str) -> Path:
 def describe() -> str:
     """Human-readable summary of resolved paths, for notebook sanity checks."""
     found = data_root(required=False)
+    inter = intermediates(required=False)
     lines = [
         f"repo root      : {repo_root()}",
         f"processed data : {processed_dir()}"
         f"{'' if processed_dir().is_dir() else '   [MISSING]'}",
         f"figure output  : {figures_dir()}",
-        f"upstream data  : {found if found else '[not found - optional]'}",
+        f"imaging data   : {found if found else '[not found - needed for some figures]'}",
+        f"intermediates  : {inter if inter else '[not found - needed for 6 supplementals]'}",
     ]
     return "\n".join(lines)
 
