@@ -37,6 +37,7 @@ fa5ee9c6fcb1e51cb579231c009ad8838edcc27781d137b6da165590fbabc166  838  data/proc
 7f14880cedbce906b67d26749ad7fe8e5e32257f38916e8d6bda9ef1465404d7  690  data/processed/legacy_peak_analysis/recall_peak_to_width_regression.csv
 b0b3564bc7a6d339bac5a8c5b55b86b340269f5eea65815f96c66a80521d2456  149253  data/processed/modeling/astrocyte_NEWcxtA_Gaussian_noise3_all.csv
 ceb78d805258bb9037d1e28dc7feba6bb74a95f562a47e4a1e882a730db40942  98532  data/processed/modeling/astrocyte_NEWcxtB_Gaussian_noise3_all.csv
+146f505f1b53beed86fb68674f8583ba9c3f569f8df5197f8794dd6a194f0e46  57782  data/processed/modeling/astrocyte_NEWhab_Gaussian_noise3_all.csv
 4cab36fa3dbf74020c383d5e8c3ab30b0fc7819a0f4c8633b7a6d02a27ad2bf0  175524  data/processed/modeling/astrocyte_shot_Gaussian_noise3_all.csv
 c68df65a1b8767a9f59a3ddea4d87806bc9dbd284e336789b6d3493f57aeffcc  7785  data/processed/supplementary/first_v_second/crossval_summary_results.csv
 96c57d720a3589b2a1c6db5da0761e81807d8b2dd68d6014dea75505fde467eb  149  data/processed/supplementary/ihc/IHC_Counts.csv
@@ -46,4 +47,4 @@ b5639e126a502e3486ef160caaa331298bb1c65fbffc5405b0b10ce397fa50fa  22973  data/pr
 7796035564d7a124a963556217883e18b09e3df8244ec7c3d391510f04f36a3c  6103  data/processed/supplementary/wavemap/shock_epoch_animal_ids.npy
 af90ac5fa77d979398cfe986468583d6b22da68c7e46159d546a8b6e091c3544  5081528  data/processed/supplementary/wavemap/shock_epoch_cells_x_time_z.npy
 8dbb7786a2922ba5639f4c02b299ff5fa5edfd8e55c145410c81680a548a6582  1928  data/processed/supplementary/wavemap/shock_epoch_time.npy
-# 41 files, 26376886 bytes (25.2 MiB)
+# 42 files, 26434668 bytes (25.2 MiB)

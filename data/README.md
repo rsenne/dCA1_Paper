@@ -11,7 +11,7 @@ are only needed to rebuild it.
 
 ## Verifying
 
-`MANIFEST.sha256` lists the SHA-256 and size of all 41 processed files.
+`MANIFEST.sha256` lists the SHA-256 and size of all 42 processed files.
 
 ```bash
 python ../scripts/verify_data.py                    # verify
@@ -70,7 +70,12 @@ Output of the Gaussian-noise generative model of astrocyte event timing, from
 per cell.
 
 `astrocyte_shot_Gaussian_noise3_all.csv` (fear conditioning),
-`astrocyte_NEWcxtA_...` (recall A), `astrocyte_NEWcxtB_...` (recall B).
+`astrocyte_NEWcxtA_...` (recall A), `astrocyte_NEWcxtB_...` (recall B),
+`astrocyte_NEWhab_Gaussian_noise3_all.csv` (habituation).
+
+The habituation table was not on the share — it existed only in a local working
+folder and was copied in here, with the `(1)` download suffix dropped from the
+filename. It has eight `mu_*` columns to the others' four.
 
 ### `supplementary/`
 
@@ -134,8 +139,8 @@ detected automatically.
 ### Publishing it
 
 `python scripts/build_zenodo_archive.py --dry-run` stages this tier for a
-Zenodo deposit (817 MB: collections, per-animal trace tarballs, freezing
-scores, checksums, and metadata). Record the DOI here and in the root README
+Zenodo deposit (23 files, 566 MB compressed: collections, per-animal trace
+tarballs, freezing scores, checksums, and metadata). Record the DOI here and in the root README
 once published.
 
 ### Archived intermediates

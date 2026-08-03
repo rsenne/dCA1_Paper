@@ -15,7 +15,7 @@ pip install -r requirements.txt
 python scripts/verify_data.py
 ```
 
-Then open `notebooks/figures/`. Six notebooks run on the data in this repo with
+Then open `notebooks/figures/`. Seven notebooks run on the data in this repo with
 no further setup; the rest need the imaging dataset (see [Data](#data)).
 
 Figures are written to `results/figures/`, which is gitignored.
@@ -40,14 +40,14 @@ Three tiers. Only the first is in git.
 
 | Tier | Contents | Size | Where |
 |---|---|---|---|
-| Processed | per-figure summary tables, UMAP embeddings, model output | 26 MB | `data/processed/` |
+| Processed | per-figure summary tables, UMAP embeddings, model output | 26 MB | `data/processed/` (42 files) |
 | Imaging | session collections (`*.pkl`), Inscopix cell traces | ~940 MB | lab share |
 | Raw | `.isxd` movies, CellReg output, behaviour video | tens of GB | lab share |
 
 `data/processed` has a checksum manifest:
 
 ```bash
-python scripts/verify_data.py                   # verify the 41 committed files
+python scripts/verify_data.py                   # verify the 42 committed files
 python scripts/verify_data.py --check-upstream   # also look for the imaging tier
 ```
 
@@ -58,8 +58,8 @@ export DCA1_DATA_ROOT=/path/to/dCA1_Clean_Data
 ```
 
 or copy `config.example.ini` to `config.ini` and set `data_root`. The Ramirez
-lab mounts (`Z:/Home/rsenne/...`, `/Volumes/rkc_ramirezlab/Home/rsenne/...`)
-are detected automatically.
+lab mounts are detected automatically, including the `\nas1.bu.edu` UNC path,
+which keeps working when the `Z:` mapping drops off VPN.
 
 Per-file provenance is in [data/README.md](data/README.md).
 
@@ -81,7 +81,7 @@ fig.savefig(paths.figure_path("figure3", "num_events.svg"))
 ## Figures
 
 "Data" is the tier a notebook needs. "Verified" means it was executed
-top-to-bottom in a fresh kernel on 2026-07-28 against the pinned dependencies
+top-to-bottom in a fresh kernel on 2026-07-31 against the pinned dependencies
 and completed without error.
 
 ### Main
@@ -94,8 +94,8 @@ and completed without error.
 | `Fig2_crossvalled_heatmaps_rho_regression_FC` | imaging | yes | cross-validated FC sequence heatmaps, paired ρ vs shuffle |
 | `Figure2_3_distribution_histograms` | processed | yes | predicted peak-time distributions (FC, A, B) |
 | `Fig3_NumDetectedEvents` | processed | yes | detected event counts by context and sex |
-| `Figure3_Cross_valled` | imaging | partly | recall cross-validated ρ, Δρ between contexts |
-| `Fig4_Crossvalled_Heatmaps` | imaging | partly | reactivated-cell sequence reinstatement, FC vs recall |
+| `Figure3_Cross_valled` | imaging | yes | recall cross-validated ρ, Δρ between contexts |
+| `Fig4_Crossvalled_Heatmaps` | imaging | yes | reactivated-cell sequence reinstatement, FC vs recall |
 
 ### Supplemental
 
@@ -106,35 +106,30 @@ and completed without error.
 | `Supp_1stv2ndHalf` | imaging | yes | FC cross-validation, first vs second half |
 | `Supp_WaveMap` | processed + imaging | yes | UMAP clustering of shock responses |
 | `Sequence_variance_plots` | processed | yes | per-cell peak variability across FC/A/B |
-| `Cosine_Similarity` | imaging | no | cosine similarity matrices per context |
-| `PreShockAnalysis` | imaging | no | velocity and movement controls |
-| `Seq_Detector`, `theoretical_dists` | imaging | no | sequence detector validation |
-| `Freezing_Analysis`, `Freezing_Seqs_Analysis` | imaging | no | freezing metrics, sequence–freezing relationship |
-| `Figure_2_peak_props` | processed | no | mixed-effects model of peak properties |
-| `Hab_Figure` | imaging | no | habituation session |
+| `Figure_2_peak_props` | processed | yes | mixed-effects model of peak properties |
+| `theoretical_dists` | none | yes | sequence detector validation (simulated) |
+| `Cosine_Similarity` | intermediates | no | cosine similarity matrices per context |
+| `PreShockAnalysis` | intermediates | no | velocity and movement controls |
+| `Seq_Detector` | intermediates | no | sequence detector validation on real traces |
+| `Freezing_Analysis`, `Freezing_Seqs_Analysis` | intermediates | no | freezing metrics, sequence–freezing relationship |
+| `Hab_Figure` | intermediates | no | habituation session |
 
-**"partly"** — both are migrated to `onep.paths` and execute past the stage that
-previously failed, but a full end-to-end run has not been confirmed.
+All eight main figures and six of the supplementals are verified: **14 notebooks
+run clean, producing 228 figure files.**
 
-They failed on `KeyError: ['sex']`: the code builds its summary tables without a
-`sex` column, then later selects on one, so the notebooks only ever ran in a
-kernel where it had been added by hand. Sex is encoded in the animal ID, so it
-is now derived where each summary is assembled:
+**"no"** — these six still read from a personal working directory
+(`C:\Users\ryansenne\Desktop\Dill`) that exists on one machine. They are not
+broken, but they are not portable, so they have not been migrated to
+`onep.paths` or run here.
 
-```python
-df['sex'] = df['animal'].str.extract(r'astro([FM])', expand=False)
-```
-
-This reproduces the `sex` column of the committed
-`figure3/crossval_summary_results_cxta.csv` exactly on all 11 rows. Confirming
-the rest of the run needs the imaging tier, which was offline when this was
-written — re-run both once the share is mounted and change these to "yes".
-
-**"no"** — these eleven still contain absolute paths from the machines they were
-written on. They have not been migrated to `onep.paths` and have not been run.
-They produced published panels, so they are left as-is rather than guessed at.
-Migrating them is the main outstanding work; see
-[notebooks/README.md](notebooks/README.md) for the procedure and the three
+They need a fourth data location the other tiers don't cover: derived trace
+exports (`{animal}_{session}_accepted_traces.csv`, `time.csv`, `event_times.csv`,
+`freeze_vec_cxt_{a,b}.csv`) produced by
+[scripts/Export_Files_Rui.py](scripts/Export_Files_Rui.py) and the Julia
+detector. That is ~360 MB of regenerable intermediates, so it belongs alongside
+the imaging tier rather than in git, reached through a new
+`paths.intermediates()` resolver. Migrating them is the main outstanding work;
+[notebooks/README.md](notebooks/README.md) documents the procedure and the four
 failure modes found while migrating the others.
 
 ## Preprocessing

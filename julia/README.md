@@ -1,7 +1,7 @@
 # Sequence detector (Julia)
 
 `activity_detector.jl` is the [Pluto](https://plutojl.org/) notebook
-implementing the hidden Markov model that detects putative astrocyte sequences
+implementing the sequence detector that detects putative astrocyte sequences
 ("high-activity events"). It produced the event times in
 `data/processed/figure3/event_times_cxt{a,b}.csv`.
 
@@ -16,20 +16,3 @@ notebook's own dependencies are embedded in the `.jl` file as
 versions, and Pluto instantiates them on open — so the notebook is
 self-contained: HiddenMarkovModels 0.7.0, Distributions 0.25.120, CSV 0.10.15,
 DataFrames 1.7.0, Plots 1.40.14, PlutoUI 0.7.65.
-
-## Model
-
-A two-state HMM is fit to summed ΔF/F per animal per session; the high-activity
-state is taken as a putative sequence period. It reads per-animal
-`accepted_traces.csv` and `time.csv` exports and writes
-`{animal}_events_binary.csv` and `event_times.csv`.
-
-Those trace exports come from
-[../scripts/Export_Files_Rui.py](../scripts/Export_Files_Rui.py), which pulls
-them out of the session collections.
-
-## Known limitation
-
-The input directory is still hardcoded (`/Users/ryansenne/Desktop/Dill`). Unlike
-the Python code this notebook has not been moved to a configurable data root —
-set the path in the loading cell before running.

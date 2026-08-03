@@ -1,20 +1,57 @@
-import sys
-# onep is installed via `pip install -e .` -- no sys.path shim needed
+#!/usr/bin/env python
+"""Export per-animal accepted traces from a session collection to CSV.
+
+These CSVs are the input to the Julia sequence detector (see julia/README.md)
+and to the generative peak-time model. They are derived intermediates, so they
+are written to results/ rather than into the committed data tier.
+
+Usage
+-----
+    python scripts/Export_Files_Rui.py                 # fear conditioning
+    python scripts/Export_Files_Rui.py --session cxta
+    python scripts/Export_Files_Rui.py --session hab --out /path/to/dir
+
+Requires the imaging tier; see data/README.md.
+"""
+
+from __future__ import annotations
+
+import argparse
 import pickle as pkl
-import onep as op
-import pandas as pd
 from pathlib import Path
 
-ddir = Path("Z:/Home/rsenne/dCA1_Clean_Data/Dill")
-file = "collection_fc_allmice.pkl"
+from onep import paths
 
-fp = ddir / file
+SESSIONS = ("hab", "fc", "cxta", "cxtb")
 
-with open(fp, 'rb') as f:
-    collection = pkl.load(f)
 
-for animal, obj in collection.animals.items():
-    acc_cells = obj.accepted_traces
-    # Save to CSV
-    acc_cells.to_csv(Path(r"C:\Users\ryansenne\Downloads") / f"{animal}_fc_accepted_traces.csv", index=False)
-    
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--session", default="fc", choices=SESSIONS,
+                    help="session to export (default: fc)")
+    ap.add_argument("--out", type=Path, default=None,
+                    help="output directory (default: results/exports/<session>)")
+    args = ap.parse_args()
+
+    src = paths.collection(args.session)
+    out = args.out.expanduser() if args.out else \
+        paths.repo_root() / "results" / "exports" / args.session
+    out.mkdir(parents=True, exist_ok=True)
+
+    print(f"reading  {src}")
+    with open(src, "rb") as f:
+        collection = pkl.load(f)
+
+    n = 0
+    for animal, obj in collection.animals.items():
+        target = out / f"{animal}_{args.session}_accepted_traces.csv"
+        obj.accepted_traces.to_csv(target, index=False)
+        print(f"  wrote  {target.name}")
+        n += 1
+
+    print(f"\n{n} animal(s) exported to {out}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

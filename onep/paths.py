@@ -59,10 +59,15 @@ __all__ = [
 # Mount points where the upstream dataset is known to live, tried in order.
 # Add your own rather than editing analysis code.
 _KNOWN_DATA_ROOTS = (
+    # Mapped drive letter (Windows). Convenient but often shows as
+    # "Unavailable" after a reboot or off-VPN, so the UNC path below is tried
+    # next -- it works whenever the share is reachable, mapped or not.
     "Z:/Home/rsenne/dCA1_Clean_Data",
+    r"\\nas1.bu.edu\rkc_ramirezlab\Home\rsenne\dCA1_Clean_Data",
+    "//nas1.bu.edu/rkc_ramirezlab/Home/rsenne/dCA1_Clean_Data",
+    # macOS mounts of the same share.
     "/Volumes/rkc_ramirezlab/Home/rsenne/dCA1_Clean_Data",
     "/Volumes/rsenne/dCA1_Clean_Data",
-    "/Volumes/rkc_ramirezlab/Home/rsenne/dCA1_Clean_Data/Revision1",
 )
 
 _CONFIG_NAME = "config.ini"
