@@ -13,7 +13,7 @@ from onep.cell_registration import CellReg     # optional GUI deps
 | Module | Contents |
 |---|---|
 | `paths.py` | resolves data and figure locations per machine |
-| `onephoton.py` | `InscopixProcessing`, `dCA1Group` — trace loading, ΔF/F, detrending, event detection |
+| `onephoton.py` | `InscopixProcessing`, `dCA1Group`  trace loading, ΔF/F, detrending, event detection |
 | `trace_analysis_functions.py` | event-triggered averages, cross-validated sequence heatmaps, ρ stats |
 | `behavior_analysis.py` | AnyMaze freezing parsing, freeze-vector alignment, Kalman-smoothed velocity |
 | `cell_registration.py` | CellReg output loading, affine FOV alignment, footprint overlays |

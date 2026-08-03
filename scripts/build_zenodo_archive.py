@@ -57,7 +57,6 @@ CITATION = {
     "creators": [
         {"name": "Senne, Ryan"},
         {"name": "Suthard, Rebecca"},
-        {"name": "Monasterio, Amy"},
     ],
     "license": "cc-by-4.0",
     "keywords": [
@@ -77,7 +76,7 @@ DESCRIPTION = """\
 <p>One-photon (Inscopix) calcium imaging of dorsal CA1 astrocytes across four
 sessions: habituation, contextual fear conditioning, and two recall contexts
 (A and B). This deposit contains the imaging data and a snapshot of the
-analysis code, so the published figures can be regenerated end to end.</p>
+analysis code, so the published figures can be regenerated.</p>
 
 <p><strong>Files</strong></p>
 <ul>
@@ -416,10 +415,6 @@ it and records which notebooks were verified by execution. Six supplementary
 notebooks read `Derived_Exports/` but still contain absolute paths from the
 machines they were written on; they are included for completeness and are
 documented as such rather than silently shipped as reproducible.
-
-## Licence
-
-CC BY 4.0. Please cite both the paper and this deposit.
 """
 
 
