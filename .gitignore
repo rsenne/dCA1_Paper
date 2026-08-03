@@ -1,16 +1,63 @@
-*.pyc
-*.png
-*.csv
-*.DS_Store
-.DS_Store
-*.pycs
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
 *checkpoint.ipynb
-*vscode*
-*.csv
-*.png
-*.idea
-*.svg
+
+# --- Editors / OS ---
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# --- Local configuration (copy config.example.ini -> config.ini) ---
+config.ini
+
+# --- Generated output -------------------------------------------------------
+# Notebooks write figures here via onep.paths.figures_dir(). Regenerable,
+# so it stays out of git.
+results/
+
+# --- Large data -------------------------------------------------------------
+# NOTE: this repo deliberately DOES track the post-hoc processed data under
+# data/processed/ -- that is what makes the figures reproducible. Only the
+# large upstream tiers are excluded. Do not add a blanket `*.csv` rule here;
+# that is what previously kept all result data out of the repository.
+data/raw/
+data/external/
+data/interim/
+
+# Bulk binary formats, wherever they land. data/processed is force-included
+# below for the small .npy arrays the WaveMAP supplement needs.
 *.pkl
-movie.mp4
-test_anim.mp4
-BayesianNotebook.ipynb
+*.pickle
+*.mat
+*.h5
+*.hdf5
+*.npz
+*.npy
+*.tif
+*.tiff
+*.avi
+*.mp4
+*.zip
+
+# Re-include the small committed arrays that figures depend on.
+!data/processed/**/*.npy
+
+# Large derived tables live on the lab share / archive, not here.
+final_df.csv
+recall_df.csv
+recall_gen1_df.csv
+peak_times_df.csv
+sequences_astro_*.csv
+*_cell_plot_heatmap_mu.csv

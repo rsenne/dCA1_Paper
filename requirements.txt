@@ -1,4 +1,13 @@
-numpy~=1.24.3
-pandas~=2.0.2
-scipy~=1.10.1
-statsmodels~=0.14.0
+# Dependency versions are declared once, in pyproject.toml, so this file
+# cannot drift out of sync with them.
+#
+#   pip install -r requirements.txt
+#
+# That installs `onep` in editable mode with every optional extra, which is
+# what you want for reproducing the paper. For a minimal install that only
+# runs the figure notebooks, use:
+#
+#   pip install -e .
+#
+# See README.md for the extras (cellreg, bayes, wavemap, video, imaging).
+-e .[all]

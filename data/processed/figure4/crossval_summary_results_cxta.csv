@@ -1,0 +1,12 @@
+animal,spearman_rho,shuffle_null_mean,shuffle_null_std,shuffle_z,context,n_cells,p_obs_parametric,p_empirical,hist_path,sex
+astroF10,1,-0.00655,0.7097411293894942,1.4181931387637026,CxtA,3,0,0.3383661633836616,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroF10_CxtA.svg,F
+astroF3,0.3463859349893528,0.002605274,0.2279662502881311,1.5080331431274243,CxtA,20,0.1346253636966704,0.1364863513648635,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroF3_CxtA.svg,F
+astroF5,-0.2,0.00371,0.4995740118534308,-0.407767408,CxtA,5,0.747060078,0.7824217578242175,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroF5_CxtA.svg,F
+astroF6,-0.6,-0.003274286,0.447132686,-1.334560708,CxtA,6,0.2079999999999998,0.2435756424357564,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroF6_CxtA.svg,F
+astroF7,1,0.0018,1.000048383667994,0.9981517057582624,CxtA,2,,1,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroF7_CxtA.svg,F
+astroF9,-0.068081667,6.722572581001773e-05,0.1180619109867447,-0.577230134,CxtA,73,0.5671086849444199,0.5643435656434357,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroF9_CxtA.svg,F
+astroM10,0.001392758,0.000420195,0.2908786785233583,0.003343534,CxtA,13,0.9963970865383104,0.9982001799820018,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroM10_CxtA.svg,M
+astroM3,0.416933438,0.001068622,0.1063957966734282,3.9086583181668777,CxtA,90,4.353479268414509e-05,0.00019998,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroM3_CxtA.svg,M
+astroM4,0.2842169039838015,-0.000492808,0.09208466,3.091825639720436,CxtA,119,0.001732768,0.00159984,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroM4_CxtA.svg,M
+astroM5,0.270228132,1.2414595669674244e-05,0.08185759,3.3010465872133103,CxtA,148,0.000894992,0.00119988,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroM5_CxtA.svg,M
+astroM9,0.085714286,0.00508,0.4453550603213033,0.1810561794356411,CxtA,6,0.8717434402332361,0.9198080191980802,/Users/suthardr/Desktop/Fig4/shuffle_FC_vs_recall/Fig4_FCvsRecall_shuffle_null_astroM9_CxtA.svg,M

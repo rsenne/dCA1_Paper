@@ -1,0 +1,88 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "onep"
+version = "1.0.0"
+description = "One-photon calcium imaging analysis for the dCA1 astrocyte paper"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Ryan Senne" },
+    { name = "Rebecca Suthard" },
+    { name = "Amy Monasterio" },
+]
+
+# Pinned to the versions the published analyses were run with. Ranges are
+# upper-bounded where a major release is known to break the API we use.
+dependencies = [
+    "numpy>=1.24,<2.0",
+    "pandas>=2.0,<3.0",
+    "scipy>=1.10,<2.0",
+    "matplotlib>=3.7,<4.0",
+    "seaborn>=0.12,<0.14",
+    "statsmodels>=0.14,<0.15",
+    "scikit-learn>=1.3,<2.0",
+    "pingouin>=0.5,<0.6",
+    "pykalman>=0.9.5",
+    "joblib>=1.3",
+    "h5py>=3.9",
+    "tifffile>=2023.7.10",
+    "scikit-image>=0.21",
+    "tqdm>=4.65",
+]
+
+[project.optional-dependencies]
+# Cell registration GUI + footprint alignment (onep.cell_registration).
+cellreg = [
+    "holoviews>=1.17",
+    "bokeh>=3.2",
+    "panel>=1.2",
+    "plotly>=5.15",
+    "imageio>=2.31",
+]
+# Bayesian / hierarchical models in the stats notebooks.
+bayes = [
+    "pymc>=5.7",
+    "arviz>=0.16",
+]
+# WaveMAP supplemental figure (UMAP embedding of shock-epoch responses).
+wavemap = [
+    "umap-learn>=0.5.4",
+    "networkx>=3.1",
+    "python-louvain>=0.16",
+]
+# Trace/behaviour movie rendering scripts.
+video = [
+    "moviepy>=1.0.3",
+    "opencv-python>=4.8",
+]
+# ROI import for the two-photon LTP notebooks.
+imaging = [
+    "roifile>=2023.8.30",
+]
+dev = [
+    "jupyterlab>=4.0",
+    "nbstripout>=0.6.1",
+    "ruff>=0.1",
+]
+all = [
+    "onep[cellreg,bayes,wavemap,video,imaging,dev]",
+]
+
+[tool.setuptools]
+# Flat layout: the importable package is ./onep
+packages = ["onep"]
+
+[tool.setuptools.package-data]
+onep = ["py.typed"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+# Notebook-derived code leans on star imports; don't fight it here.
+ignore = ["F403", "F405"]
